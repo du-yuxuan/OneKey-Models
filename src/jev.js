@@ -60,7 +60,7 @@ export function validateQuestions(questions) {
  * @param {string} options.key
  * @param {string} options.model - e.g. `bocha-jev-v1`
  * @param {Record<string, object>} options.questions
- * @param {string} [options.state] - opaque context string, echoed back by the model
+ * @param {string|object} [options.state] - opaque context (server requires a string/dict/list, never null); defaults to `{}`
  * @param {string} [options.appUrl]
  * @param {number} [options.timeoutMs]
  * @param {AbortSignal} [options.signal]
@@ -79,7 +79,7 @@ export async function askTyped(options) {
     signal: options.signal,
     body: {
       model: options.model,
-      ...(options.state === undefined ? {} : { state: options.state }),
+      ...(options.state === undefined || options.state === null ? { state: {} } : { state: options.state }),
       questions: options.questions,
     },
   })
