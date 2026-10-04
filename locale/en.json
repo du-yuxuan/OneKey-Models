@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OneKey-Models — one-click access to every TokenDance model",
+    "description": "Bring all 108 of TokenDance's latest frontier models into the DSH model picker with one click: OAuth sign-in fetches the API key for you, the catalog syncs live, and image generation, Jev judgment and multimodal input all work out of the box. API support powered by TokenDance."
+  }
+}

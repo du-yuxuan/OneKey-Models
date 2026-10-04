@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OneKey-Models — 一键接入 TokenDance 全量模型",
+    "description": "一键把 TokenDance 的 108 个最新最热大模型接进 DSH 模型选择器：OAuth 登录自动获取 API Key、模型目录实时同步、多选与显隐、生图、Jev 判断、多模态输入。API 支持由 TokenDance 提供。"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "onekey-models",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OneKey-Models — one-click access to the 108 latest models on TokenDance inside DeepSeek Harness: OAuth sign-in stores the API key for you, the model catalog syncs live, and you choose which models are visible, including image generation, Jev typed decisions and multimodal input. API support powered by TokenDance.",
+  "icon": "./icon.webp",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "src",
+    "locale",
+    "icon.webp",
+    "logo",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md",
+    "README.zh.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "tokendance",
+    "llm-provider",
+    "models",
+    "image-generation"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/du-yuxuan/OneKey-Models.git"
+  },
+  "homepage": "https://github.com/du-yuxuan/OneKey-Models#readme",
+  "bugs": {
+    "url": "https://github.com/du-yuxuan/OneKey-Models/issues"
+  },
+  "dependencies": {
+    "@deepseek-ai/cosmokit": "^1.8.5",
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
+    }
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "check:catalog": "node scripts/check-catalog.mjs"
+  }
+}

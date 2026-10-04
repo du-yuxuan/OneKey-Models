@@ -1,0 +1,16 @@
+# onekey-models bundle patch.
+#
+# The row id MUST equal the package name. DSH addresses a bundle's settings
+# namespace by its **mount row id** (SettingsForms.describe() publishes
+# `entry.options.id`), while the bundle's own card in the plugin page is keyed by
+# the **package name** (`plugins.bundle.config` renders with `{ entryKey:
+# pkg.name }`). When the two disagree the card reads no namespace at all and
+# every control stays dead with no error printed anywhere — this is exactly the
+# trap documented in dsh-jev-tools/cordis.patch.yml.
+#
+# One insert row mounts the Host half. The browser half is declared in
+# package.json under `dsh.client` and binds to this row.
+- insert:
+    - id: onekey-models
+      name: onekey-models
+      config: {}
