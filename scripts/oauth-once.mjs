@@ -19,6 +19,9 @@ const AUTH_ORIGIN = process.env.TOKENDANCE_AUTH_ORIGIN ?? 'https://tokendance.sp
 const APP_URL = process.env.TOKENDANCE_APP_URL ?? 'https://github.com/du-yuxuan/OneKey-Models'
 const KEY_NAME = process.env.TOKENDANCE_KEY_NAME ?? 'DeepSeek Harness (OneKey-Models)'
 const KEY_FILE = process.env.TOKENDANCE_KEY_FILE ?? join(tmpdir(), 'tokendance-e2e.key')
+// How long to sit on the loopback callback. Interactive sign-in on a phone is
+// slow, so the default is generous; override with TOKENDANCE_WAIT_MS.
+const WAIT_MS = Number(process.env.TOKENDANCE_WAIT_MS ?? 600_000)
 
 const pkce = createPkce()
 const callback = await openCallback()
@@ -43,10 +46,10 @@ const shutdown = async () => {
 process.on('SIGTERM', () => { void shutdown().then(() => process.exit(1)) })
 process.on('SIGINT', () => { void shutdown().then(() => process.exit(1)) })
 
-const code = await callback.waitForCode(300_000)
+const code = await callback.waitForCode(WAIT_MS)
 await shutdown()
 if (code === undefined || code === '') {
-  console.error('FAIL=no-code (300s timeout or empty code)')
+  console.error(`FAIL=no-code (${Math.round(WAIT_MS / 1000)}s timeout or empty code)`)
   process.exit(2)
 }
 console.log(`CODE_ARRIVED=yes (len=${code.length})`)
