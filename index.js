@@ -27,6 +27,7 @@ import { clearApiKey, describeApiKey, resolveApiKey, storeApiKey } from './src/c
 import { buildEnrichment, mergeCatalog, toProviderProfile } from './src/catalog.js'
 import { exchangeCode, fetchModels } from './src/http.js'
 import { generateImage, imageModels, imageProtocolOf } from './src/image.js'
+import { createPaymentSession, fetchBalance, fetchPaymentStatus, fetchUsage, paymentQrSvg, redeemCode } from './src/portal.js'
 import { jevModels } from './src/jev.js'
 import { authorizationUrl, createPkce, openCallback } from './src/oauth.js'
 import { findOwnNamespace, findRouterNamespace, readProvider, writeProvider } from './src/pi-ai.js'
@@ -70,12 +71,17 @@ export function apply(ctx, entry) {
     inflight: undefined,
     /** Pending OAuth attempt: verifier plus how it was started. */
     pending: undefined,
+    /** Last /portal/usage request time, for the local 1 req/s limiter. */
+    usageAt: 0,
   }
-
   ctx.effect(() => {
     ctx.logger?.info(
       `[${name}] mounted (provider route "${settings().providerRoute}", key ref "${settings().apiKeyEnv}").`,
     )
+    // Symptom-2 fix: reconcile the provider row on every mount. If the key
+    // landed while the host was down (e.g. written into the credentials file),
+    // the model selector must still populate without waiting for a page visit.
+    void publish()
   })
 
   // ── catalog ─────────────────────────────────────────────────────────────────
@@ -353,6 +359,9 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
         ref: current.apiKeyEnv,
         // The value itself is never part of any response.
       },
+      // Attribution is fixed in code; surfaced so the page can show what every
+      // call is tagged with.
+      appUrl: current.appUrl,
       catalog: catalog.ok
         ? { count: catalog.models.length, models: catalog.models }
         : { count: 0, models: [], error: catalog.error },
@@ -449,12 +458,70 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
           if (result.ok) await publish()
           return
         }
-      if (method === 'GET' && (route === '/image-models' || route === '/jev-models')) {
-        const catalog = await readCatalog(settings())
-        const models = catalog.ok ? (route === '/image-models' ? imageModels(catalog.models) : jevModels(catalog.models)) : []
-        send({ ok: catalog.ok, models, error: catalog.error })
-        return
-      }
+        if (method === 'GET' && (route === '/image-models' || route === '/jev-models')) {
+          const catalog = await readCatalog(settings())
+          const models = catalog.ok ? (route === '/image-models' ? imageModels(catalog.models) : jevModels(catalog.models)) : []
+          send({ ok: catalog.ok, models, error: catalog.error })
+          return
+        }
+        // ── portal (open platform + agent payment) ──
+        // All of these run on the same key as model calls; the key is resolved
+        // per request and never appears in a response or log line.
+        if (route === '/portal/balance' || route === '/portal/usage' ||
+            route === '/portal/redeem' || route === '/portal/payment') {
+          const key = await resolveApiKey(ctx.get('credentials', false), settings().apiKeyEnv)
+          if (key === undefined) {
+            send({ ok: false, error: 'no-api-key' }, { status: 409 })
+            return
+          }
+          if (route === '/portal/balance' && method === 'GET') {
+            send(await fetchBalance(key, { timeoutMs: settings().toolTimeoutMs }))
+            return
+          }
+          if (route === '/portal/redeem' && method === 'POST') {
+            const { code } = await body()
+            const result = await redeemCode(key, typeof code === 'string' ? code : '', { timeoutMs: settings().toolTimeoutMs })
+            send(result, { status: result.ok ? 200 : 400 })
+            return
+          }
+          if (route === '/portal/usage' && method === 'GET') {
+            // The portal allows 1 usage query per second per user; anything
+            // faster would just surface 429s to the page.
+            const now = Date.now()
+            if (now - state.usageAt < 1000) {
+              send({ ok: false, error: 'rate-limited (1 query per second)' }, { status: 429 })
+              return
+            }
+            state.usageAt = now
+            const q = Object.fromEntries(url.searchParams)
+            send(await fetchUsage(key, {
+              limit: q.limit === undefined ? undefined : Number(q.limit),
+              offset: q.offset === undefined ? undefined : Number(q.offset),
+              ...(q.end_id ? { endId: q.end_id } : {}),
+              ...(q.start_id ? { startId: q.start_id } : {}),
+              ...(q.window ? { window: q.window } : {}),
+              ...(q.model_id ? { modelId: q.model_id } : {}),
+              ...(q.provider_name ? { providerName: q.provider_name } : {}),
+              ...(q.is_success === undefined ? {} : { successOnly: q.is_success === 'true' }),
+            }, { timeoutMs: settings().toolTimeoutMs }))
+            return
+          }
+          if (route === '/portal/payment' && method === 'POST') {
+            const payload = await body()
+            if (payload.action === 'status' && typeof payload.sessionId === 'string') {
+              send(await fetchPaymentStatus(key, payload.sessionId, { timeoutMs: settings().toolTimeoutMs }))
+              return
+            }
+            if (payload.action === 'qr' && typeof payload.content === 'string') {
+              const svg = paymentQrSvg(payload.content, { cellSize: 6, margin: 2 })
+              send(svg === undefined ? { ok: false, error: 'qr-content-empty' } : { ok: true, svg })
+              return
+            }
+            const result = await createPaymentSession(key, { amountYuan: payload.amount }, { timeoutMs: settings().toolTimeoutMs })
+            send(result, { status: result.ok ? 201 : 400 })
+            return
+          }
+        }
       send({ ok: false, error: 'unknown route' }, { status: 404 })
     } catch (error) {
       send({ ok: false, error: messageOf(error) }, { status: 500 })

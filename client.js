@@ -118,6 +118,26 @@ window.__ModuleLoader__.load({
         'adv.noChange': '没有需要保存的改动',
         'adv.rejected': '以下字段未通过校验：{list}',
         'td.what': 'TokenDance 是什么？',
+        'step.account': '账户 · 余额 / 兑换 / 充值',
+        'acct.balance': '余额',
+        'acct.balanceTip': '来自 TokenDance 开放平台，随调用实时扣减',
+        'acct.refresh': '刷新',
+        'acct.redeemPh': '输入兑换码',
+        'acct.redeem': '兑换',
+        'acct.redeemDone': '兑换成功，到账 {yuan} 元',
+        'acct.topup': '充值',
+        'acct.amount': '金额（元）',
+        'acct.createSession': '生成支付二维码',
+        'acct.scan': '微信 / 支付宝扫码支付',
+        'acct.alipay': '在手机支付宝中打开',
+        'acct.waiting': '等待支付中…',
+        'acct.paid': '支付成功，额度已到账',
+        'acct.expired': '支付会话已过期，请重新发起',
+        'acct.close': '关闭',
+        'acct.usage': '最近调用',
+        'acct.usageEmpty': '暂无调用记录',
+        'acct.needKey': '完成第 1 步后即可使用账户功能',
+        'acct.payHint': '扫码后本页自动确认到账；未到账前请勿重复发起',
         'td.body': 'TokenDance 是一个模型聚合网关：一个地址、一把 Key，就能调用市面上最新最热的大模型（GLM、DeepSeek、Kimi、Qwen、MiniMax 等），支持对话、生图、多模态、Jev 判定等多种能力。本插件的模型目录与调用全部由 TokenDance 提供支持，配置只保存在你自己的电脑上。',
         'td.visit': '访问 tokendance.space',
         'common.loading': '加载中…',
@@ -204,6 +224,26 @@ window.__ModuleLoader__.load({
         'adv.saved': 'Advanced settings saved',
         'adv.noChange': 'Nothing changed to save',
         'adv.rejected': 'These fields failed validation: {list}',
+        'step.account': 'Account · Balance / Redeem / Top up',
+        'acct.balance': 'Balance',
+        'acct.balanceTip': 'From the TokenDance open platform; consumed per call',
+        'acct.refresh': 'Refresh',
+        'acct.redeemPh': 'Enter a redemption code',
+        'acct.redeem': 'Redeem',
+        'acct.redeemDone': 'Redeemed {yuan} yuan',
+        'acct.topup': 'Top up',
+        'acct.amount': 'Amount (yuan)',
+        'acct.createSession': 'Show payment QR code',
+        'acct.scan': 'Scan with WeChat / Alipay to pay',
+        'acct.alipay': 'Open in Alipay (mobile)',
+        'acct.waiting': 'Waiting for payment…',
+        'acct.paid': 'Payment received — credits added',
+        'acct.expired': 'Payment session expired; start a new one',
+        'acct.close': 'Close',
+        'acct.usage': 'Recent calls',
+        'acct.usageEmpty': 'No calls yet',
+        'acct.needKey': 'Finish step 1 to use account features',
+        'acct.payHint': 'The page confirms the payment automatically once it lands; do not start a second session before it does',
         'td.what': 'What is TokenDance?',
         'td.body': 'TokenDance is a model aggregation gateway: one endpoint and one key for the newest hot models (GLM, DeepSeek, Kimi, Qwen, MiniMax and more), covering chat, image generation, multimodal input and Jev judgement. This plugin is powered by TokenDance for its catalog and calls, and every configuration stays on your own machine.',
         'td.visit': 'Visit tokendance.space',
@@ -321,7 +361,7 @@ window.__ModuleLoader__.load({
     }
 
     const ADV_FIELDS = [
-      'providerRoute', 'displayName', 'baseURL', 'keyName', 'appUrl', 'authOrigin',
+      'providerRoute', 'displayName', 'baseURL', 'keyName', 'authOrigin',
       'modelsDevUrl', 'toolTimeoutMs', 'autoConfigure', 'enableCatalogTool',
       'enableImageTool', 'enableJevTool',
     ]
@@ -375,6 +415,24 @@ window.__ModuleLoader__.load({
           setDraft(pick)
         }
       }, [status, visible, imgIn, draft])
+
+      // Symptom-2 fix (m03888): when a key exists but no provider row has been
+      // published yet, apply once automatically so models show up in the
+      // model selector without the user having to find step 3 by hand.
+      const autoApplied = useRef(false)
+      useEffect(() => {
+        if (!status || autoApplied.current) return
+        const keyOk = Boolean(status.key?.configured)
+        const routedOk = Boolean(status.routed?.present)
+        const modelsOk = (status.catalog?.models ?? []).some((m) => m.routeable)
+        if (keyOk && !routedOk && modelsOk) {
+          autoApplied.current = true
+          void (async () => {
+            const r = await api('/apply', { method: 'POST', body: {} })
+            if (r.data?.ok) void load()
+          })()
+        }
+      }, [status])
 
       const models = useMemo(() => status?.catalog?.models ?? [], [status])
       const routeableIds = useMemo(() => models.filter((m) => m.routeable).map((m) => m.id), [models])
@@ -612,6 +670,12 @@ window.__ModuleLoader__.load({
           !keyConfigured ? h('p', { className: 'om-note' }, t('apply.needKey'))
             : visibleCount === 0 ? h('p', { className: 'om-note' }, t('apply.needModels')) : null),
 
+        // ── account: balance / redeem / top-up ──
+        AccountSection({
+          status, busy, t, fill, api, fmtCtx,
+          onMessage: setMsg,
+          onBusy: (v) => setBusy(v ? 'acct' : ''),
+        }),
         // ── advanced ──
         h('details', { className: 'om-card' },
           h('summary', { className: 'om-step', style: { cursor: 'pointer' } }, t('step.advanced')),
@@ -620,7 +684,7 @@ window.__ModuleLoader__.load({
             advField(t, 'displayName', draft, setDraft),
             advField(t, 'baseURL', draft, setDraft),
             advField(t, 'keyName', draft, setDraft),
-            advField(t, 'appUrl', draft, setDraft),
+            // appUrl removed from the form: attribution is fixed in code.
             advField(t, 'authOrigin', draft, setDraft),
             advField(t, 'modelsDevUrl', draft, setDraft),
             advField(t, 'toolTimeoutMs', draft, setDraft, undefined, 'number')),
@@ -649,7 +713,153 @@ window.__ModuleLoader__.load({
               h('span', { className: 'om-ctx', style: { marginLeft: '10px' } }, t('common.source'))))))
     }
 
-    /** One text input of the advanced form. */
+    /**
+     * Account area: balance, redemption codes and top-up (Agent payment).
+     * All requests go through the plugin HTTP server with the stored key; the
+     * key itself never reaches this page.
+     */
+    function AccountSection({ status, busy, t, fill, api, onMessage, onBusy }) {
+      const hasKey = Boolean(status?.key?.configured)
+      const [balance, setBalance] = useState(null) // { balance, balanceYuan, ... }
+      const [usage, setUsage] = useState(null) // items[]
+      const [code, setCode] = useState('')
+      const [amount, setAmount] = useState('10')
+      const [session, setSession] = useState(null) // normalized payment session
+      const [qr, setQr] = useState('') // svg from /portal/payment
+      const pollRef = useRef(null)
+      useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+      const loadBalance = async () => {
+        onBusy(true)
+        const r = await api('/portal/balance')
+        onBusy(false)
+        if (r.data?.ok) setBalance(r.data)
+        else if (r.status !== 0) onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+      }
+      const loadUsage = async () => {
+        const r = await api('/portal/usage?limit=10')
+        if (r.data?.ok) setUsage(r.data.items ?? [])
+      }
+      // Seed once a key exists. Effect deps stay minimal on purpose: this is a
+      // one-shot seed per key-arrival, not a balance subscription.
+      useEffect(() => {
+        if (!hasKey) return
+        void loadBalance()
+        void loadUsage()
+      }, [hasKey])
+
+      const redeem = async () => {
+        if (!code.trim()) return
+        onBusy(true)
+        const r = await api('/portal/redeem', { method: 'POST', body: { code: code.trim() } })
+        onBusy(false)
+        if (r.data?.ok) {
+          onMessage({ kind: 'ok', text: fill(t('acct.redeemDone'), { yuan: r.data.creditsYuan }) })
+          setCode('')
+          void loadBalance()
+        } else {
+          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+        }
+      }
+
+      const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }
+      const startPolling = (sessionId) => {
+        stopPolling()
+        pollRef.current = setInterval(async () => {
+          const r = await api('/portal/payment', { method: 'POST', body: { action: 'status', sessionId } })
+          const s = r.data
+          if (!s?.ok) return // transient errors keep polling until expiry
+          if (s.session?.status === 'paid') {
+            stopPolling()
+            setSession(s.session)
+            onMessage({ kind: 'ok', text: t('acct.paid') })
+            void loadBalance()
+          } else if (s.session?.status !== 'pending') {
+            stopPolling()
+            setSession(s.session)
+          } else if (s.session?.expired) {
+            stopPolling()
+            setSession(s.session)
+          }
+        }, 3000)
+      }
+      const startPayment = async () => {
+        const amountYuan = Math.round(Number(amount))
+        if (!Number.isFinite(amountYuan) || amountYuan < 1) return
+        onBusy(true)
+        const r = await api('/portal/payment', { method: 'POST', body: { amount: amountYuan } })
+        onBusy(false)
+        if (!r.data?.ok) {
+          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+          return
+        }
+        setSession(r.data.session)
+        const qrRes = await api('/portal/payment', { method: 'POST', body: { action: 'qr', content: r.data.session.paymentUrl } })
+        setQr(qrRes.data?.ok ? qrRes.data.svg : '')
+        startPolling(r.data.session.id)
+      }
+      const closePayment = () => { stopPolling(); setSession(null); setQr('') }
+
+      if (!hasKey) {
+        return h('section', { className: 'om-card' },
+          h('div', { className: 'om-step' }, h('span', { className: 'om-num' }, '4'), t('step.account')),
+          h('p', { className: 'om-note' }, t('acct.needKey')))
+      }
+      return h('section', { className: 'om-card' },
+        h('div', { className: 'om-step' }, h('span', { className: 'om-num' }, '4'), t('step.account')),
+        h('div', { className: 'om-rowline' },
+          h('span', { className: 'om-pill on' },
+            h('span', { className: 'om-dot' }),
+            `${t('acct.balance')} ¥${balance?.balanceYuan ?? '—'}${balance?.balanceYuan === undefined ? '' : ''}`),
+          h('button', { className: 'om-btn', disabled: busy === 'acct', onClick: () => void loadBalance() }, t('acct.refresh'))),
+        h('p', { className: 'om-note', style: { margin: '4px 0 0' } }, t('acct.balanceTip')),
+
+        h('div', { className: 'om-rowline', style: { marginTop: '12px' } },
+          h('input', {
+            className: 'om-input', style: { flex: '1 1 200px' },
+            placeholder: t('acct.redeemPh'), value: code,
+            onChange: (e) => setCode(e.target.value),
+          }),
+          h('button', { className: 'om-btn', disabled: busy === 'acct' || !code.trim(), onClick: () => void redeem() }, t('acct.redeem'))),
+
+        h('div', { className: 'om-rowline', style: { marginTop: '12px' } },
+          h('input', {
+            className: 'om-input', style: { flex: '1 1 120px', maxWidth: '160px' },
+            type: 'number', min: 1, step: 1, value: amount,
+            onChange: (e) => setAmount(e.target.value),
+            'aria-label': t('acct.amount'),
+          }),
+          h('button', { className: 'om-btn primary', disabled: busy === 'acct' || session, onClick: () => void startPayment() },
+            session ? t('acct.waiting') : t('acct.createSession'))),
+        session ? h(Fragment, null,
+          qr ? h('div', { className: 'om-qr', style: { marginTop: '12px', textAlign: 'center' },
+            // SVG comes from the host half; injected as raw markup, never user input.
+            dangerouslySetInnerHTML: { __html: qr } }) : null,
+          h('p', { className: 'om-note', style: { textAlign: 'center', margin: '8px 0 0' } },
+            session.status === 'paid' ? t('acct.paid')
+              : session.expired ? t('acct.expired') : t('acct.scan')),
+          session.alipayUrl ? h('p', { style: { textAlign: 'center', margin: '8px 0 0' } },
+            h('a', { className: 'om-link', href: session.alipayUrl }, t('acct.alipay'))) : null,
+          h('p', { className: 'om-note', style: { textAlign: 'center', margin: '4px 0 0' } }, t('acct.payHint')),
+          h('div', { style: { textAlign: 'center', marginTop: '8px' } },
+            h('button', { className: 'om-btn', onClick: closePayment }, t('acct.close')))) : null,
+
+        h('div', { style: { marginTop: '14px' } },
+          h('div', { className: 'om-step', style: { fontSize: '12px' } }, t('acct.usage')),
+          usage === null ? null
+            : usage.length === 0 ? h('div', { className: 'om-empty' }, t('acct.usageEmpty'))
+              : h('div', { className: 'om-list' },
+                usage.map((u) => h('div', { key: u.id, className: 'om-model' },
+                  h('div', { className: 'om-mid' },
+                    h('div', { className: 'om-mid-top' },
+                      h('span', { className: 'om-id' }, u.modelId ?? u.model_id ?? '—'),
+                      h('span', { className: 'om-ctx' }, `¥${((u.cost ?? 0) / 1e6).toFixed(4)}`)),
+                    h('div', { className: 'om-tags' },
+                      h('span', { className: 'om-tag' }, u.providerName ?? u.provider_name ?? ''),
+                      h('span', { className: 'om-tag' }, String(u.totalTokens ?? u.total_tokens ?? 0)),
+                      h('span', { className: 'om-tag' }, new Date(u.createdAt ?? u.created_at).toLocaleString())))))))
+      )
+    }
     function advField(t, key, draft, setDraft, hint, type = 'text') {
       return h('div', { className: 'om-field' },
         h('label', { htmlFor: `om-${key}` }, t(`adv.${key}`)),
@@ -684,6 +894,20 @@ window.__ModuleLoader__.load({
         document.head.appendChild(style)
         return () => style.remove()
       }, 'onekey-models: styles')
+
+      // The Settings home page builds its nav from the `settings.section` list
+      // slot: client-ui-settings-general reads `options.id` / `options.order` /
+      // `options.label` off each entry and renders the active one with `{ close }`
+      // as props. Registering only `plugins.bundle.config` left our page behind
+      // the plugin-manager detail view, so the Settings window showed nothing.
+      const navT = ctx.locale.bind(NS)
+      ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register({
+        name: 'settings.section',
+        id: PACKAGE,
+        order: 60,
+        label: () => navT('title'),
+        locale: NS,
+      }, OneKeyModelsPage)), 'onekey-models: settings entry')
 
       // The plugin manager renders `plugins.bundle.config` keyed by package
       // name on this bundle's detail page; declaring `locale: NS` makes the kit

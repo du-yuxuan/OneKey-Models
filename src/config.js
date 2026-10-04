@@ -23,8 +23,7 @@ const DEFAULT_AUTH_ORIGIN = 'https://tokendance.space'
 const DEFAULT_MODELS_DEV = 'https://models.dev/api.json?type=all'
 const DEFAULT_KEY_REF = 'TOKENDANCE_API_KEY'
 const DEFAULT_ROUTE = 'tokendance'
-const DEFAULT_APP_URL = 'https://github.com/du-yuxuan/OneKey-Models'
-
+const DEFAULT_APP_URL = 'plugin://oneKey-models'
 export const Config = Schema.object({
   /** Credential reference (POSIX identifier), never the key itself. */
   apiKeyEnv: Schema.string().default(DEFAULT_KEY_REF),
@@ -34,7 +33,10 @@ export const Config = Schema.object({
   displayName: Schema.string().default('TokenDance'),
   baseURL: Schema.string().default(DEFAULT_BASE_URL),
   /** Stable app URL used for TokenDance call attribution. Must NOT be a random
-   *  port: attribution is inherited by every later call from the key. */
+  /** App attribution URL, fixed in code. The TokenDance docs allow any URL-shaped
+   *  value including custom schemes (`app://example-desktop` style); a plugin is
+   *  an application in its own right, so we attribute every call and key to this
+   *  constant and the schema deliberately does NOT expose it as editable. */
   appUrl: Schema.string().default(DEFAULT_APP_URL),
   keyName: Schema.string().default('DeepSeek Harness (OneKey-Models)'),
   /** Where the OAuth authorization page and the code exchange live. */
@@ -91,7 +93,10 @@ export function resolveSettings(entry) {
     providerRoute: route(plain.providerRoute, DEFAULT_ROUTE),
     displayName: str(plain.displayName, 'TokenDance'),
     baseURL: url(str(plain.baseURL, DEFAULT_BASE_URL), DEFAULT_BASE_URL),
-    appUrl: url(str(plain.appUrl, DEFAULT_APP_URL), DEFAULT_APP_URL),
+    // Written attribution (user requirement): the value is fixed and every
+    // stored override is ignored, so neither a stale setting nor a crafted form
+    // payload can re-point attribution.
+    appUrl: DEFAULT_APP_URL,
     keyName: str(plain.keyName, 'DeepSeek Harness (OneKey-Models)'),
     authOrigin: url(str(plain.authOrigin, DEFAULT_AUTH_ORIGIN), DEFAULT_AUTH_ORIGIN),
     modelsDevUrl: url(str(plain.modelsDevUrl, DEFAULT_MODELS_DEV), DEFAULT_MODELS_DEV),

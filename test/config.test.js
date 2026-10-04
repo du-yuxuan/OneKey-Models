@@ -8,7 +8,8 @@ test('defaults point at the TokenDance gateway', () => {
   assert.equal(s.baseURL, 'https://tokendance.space/gateway/v1')
   assert.equal(s.authOrigin, 'https://tokendance.space')
   assert.equal(s.apiKeyEnv, 'TOKENDANCE_API_KEY')
-  assert.equal(s.appUrl, 'https://github.com/du-yuxuan/OneKey-Models')
+  // Attribution is fixed in code and overrides are ignored by design.
+  assert.equal(s.appUrl, 'plugin://oneKey-models')
   assert.equal(s.modelsDevUrl, 'https://models.dev/api.json?type=all')
   assert.equal(s.autoConfigure, false)
   assert.equal(s.toolTimeoutMs, 180_000)
@@ -29,12 +30,14 @@ test('providerRoute falls back to the default when malformed', () => {
   assert.equal(resolveSettings({ providerRoute: 'my-route_2' }).providerRoute, 'my-route_2')
 })
 
-test('URL fields must be http(s) and lose trailing slashes', () => {
+test('attribution appUrl is fixed: overrides are ignored, custom scheme survives', () => {
+  assert.equal(resolveSettings({ appUrl: 'not a url' }).appUrl, 'plugin://oneKey-models')
+  assert.equal(resolveSettings({ appUrl: 'https://evil.example.com' }).appUrl, 'plugin://oneKey-models')
+  assert.equal(resolveSettings({ appUrl: '' }).appUrl, 'plugin://oneKey-models')
+  // http(s) fields stay strict — only appUrl is special.
   assert.equal(resolveSettings({ baseURL: 'https://x.example/v1///' }).baseURL, 'https://x.example/v1')
   assert.equal(resolveSettings({ baseURL: 'ftp://x.example' }).baseURL,
     'https://tokendance.space/gateway/v1')
-  assert.equal(resolveSettings({ appUrl: 'not a url' }).appUrl,
-    'https://github.com/du-yuxuan/OneKey-Models')
 })
 
 test('id lists are deduplicated and emptied of blanks', () => {
