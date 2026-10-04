@@ -26,8 +26,8 @@ const FIELDS = {
   providerRoute: { coerce: route, hint: 'lower-case identifier' },
   displayName: { coerce: text },
   baseURL: { coerce: httpUrl },
-  appUrl: { coerce: httpUrl },
   keyName: { coerce: text },
+  // appUrl is deliberately absent: attribution is fixed in code (plugin://oneKey-models)
   authOrigin: { coerce: httpUrl },
   modelsDevUrl: { coerce: httpUrl },
   autoConfigure: { coerce: bool },

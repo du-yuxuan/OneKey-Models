@@ -56,11 +56,13 @@ export function endpoints(baseURL) {
  * @returns {Promise<ApiResult>}
  */
 export async function request(url, options = {}) {
-  const { key, method = 'GET', body, headers = {}, timeoutMs = 180_000, signal } = options
+  const { key, method = 'GET', body, headers = {}, timeoutMs = 180_000, signal, appUrl } = options
   const requestHeaders = { accept: 'application/json', ...headers }
   if (body !== undefined) requestHeaders['content-type'] = 'application/json'
   if (key !== undefined && key !== '') requestHeaders.authorization = `Bearer ${key}`
-
+  // Request-dimension attribution (docs/app-attribution.md): every model call
+  // carries X-App-URL so attribution never depends on what the key inherits.
+  if (appUrl !== undefined && appUrl !== '') requestHeaders['x-app-url'] = appUrl
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs)
   const onAbort = () => controller.abort(signal?.reason)

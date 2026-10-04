@@ -6,10 +6,18 @@ const current = {}
 
 test('editableFields matches the Config schema', () => {
   assert.deepEqual([...editableFields()].sort(), [
-    'appUrl', 'authOrigin', 'autoConfigure', 'baseURL', 'displayName', 'enableCatalogTool',
+    // appUrl is absent on purpose: attribution is fixed in code.
+    'authOrigin', 'autoConfigure', 'baseURL', 'displayName', 'enableCatalogTool',
     'enableImageTool', 'enableJevTool', 'imageInputModels', 'keyName', 'modelsDevUrl',
     'providerRoute', 'toolTimeoutMs', 'visibleModels',
   ])
+  assert.ok(!editableFields().includes('appUrl'))
+})
+
+test('patchFrom drops an appUrl override (fixed attribution)', () => {
+  const { ops, rejected } = patchFrom({ appUrl: 'https://evil.example.com' }, current)
+  assert.deepEqual(ops, [])
+  assert.deepEqual(rejected, ['appUrl'])
 })
 
 test('patchFrom keeps known keys and rejects everything else', () => {
