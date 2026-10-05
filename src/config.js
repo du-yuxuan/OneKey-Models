@@ -46,7 +46,7 @@ export const Config = Schema.object({
    *  TokenDance is not itself a models.dev provider. */
   modelsDevUrl: Schema.string().default(DEFAULT_MODELS_DEV),
   /** Publish the provider profile into the router as soon as a key exists. */
-  autoConfigure: Schema.boolean().default(false),
+  autoConfigure: Schema.boolean().default(true),
   /** Model ids to expose in the picker. Empty means "every chat-capable model". */
   visibleModels: Schema.array(Schema.string()).default([]),
   /** Model ids the user asserts accept image input. models.dev is the default
@@ -100,7 +100,7 @@ export function resolveSettings(entry) {
     keyName: str(plain.keyName, 'DeepSeek Harness (OneKey-Models)'),
     authOrigin: url(str(plain.authOrigin, DEFAULT_AUTH_ORIGIN), DEFAULT_AUTH_ORIGIN),
     modelsDevUrl: url(str(plain.modelsDevUrl, DEFAULT_MODELS_DEV), DEFAULT_MODELS_DEV),
-    autoConfigure: plain.autoConfigure === true,
+    autoConfigure: plain.autoConfigure !== false,
     visibleModels: strings(plain.visibleModels),
     imageInputModels: strings(plain.imageInputModels),
     toolTimeoutMs: num(plain.toolTimeoutMs, 180_000),

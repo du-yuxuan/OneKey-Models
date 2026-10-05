@@ -73,6 +73,8 @@ export function apply(ctx, entry) {
     pending: undefined,
     /** Last /portal/usage request time, for the local 1 req/s limiter. */
     usageAt: 0,
+    /** Last publish() outcome for /status. Diagnostic only; no key material. */
+    lastPublish: undefined,
   }
 
   // ── catalog ─────────────────────────────────────────────────────────────────
@@ -160,9 +162,13 @@ export function apply(ctx, entry) {
     }
   }
 
-  const applyNow = async (deps) => {
+  const applyNow = async (deps, { force = false } = {}) => {
     const current = settings()
-    if (!current.autoConfigure) {
+    // autoConfigure gates only the AUTOMATIC publishes (mount reconcile, the
+    // volatile-update pass, the after-authorise write). An explicit Apply now
+    // or config save passes `force` and always runs — otherwise the manual
+    // button could never do anything while the flag was off.
+    if (!force && !current.autoConfigure) {
       return { ok: false, problem: 'auto-off', message: 'Auto-apply is off; enable it or press Apply now.' }
     }
     const catalog = await readCatalog(current, { force: true })
@@ -358,6 +364,7 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
         : { count: 0, models: [], error: catalog.error },
       routed,
       settings: current,
+      lastPublish: state.lastPublish,
     }
   }
 
@@ -434,13 +441,17 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
           return
         }
         if (method === 'POST' && route === '/apply') {
-          send(await publish())
+          // Explicit user action: bypass autoConfigure and surface the real
+          // result — the old `send(await publish())` returned an empty 200
+          // because publish() dropped applyNow's return value.
+          const result = await publish({ force: true })
+          send(result, { status: result.ok ? 200 : 400 })
           return
         }
         if (method === 'POST' && route === '/config') {
           const result = await saveConfig(await body())
           send(result, { status: result.ok ? 200 : 400 })
-          if (result.ok) await publish()
+          if (result.ok) await publish({ force: true })
           return
         }
         if (method === 'POST' && route === '/key/clear') {
@@ -531,31 +542,70 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
   // A settings change must reach the router without a restart. The key itself
   // is published at the two moments it can change — right after a successful
   // exchange and right after it is cleared — because no event fires for either.
-  const publish = async () => {
+  const publishInner = async ({ force = false } = {}) => {
     const settingsService = ctx.get('settings', false)
     const credentialsService = ctx.get('credentials', false)
+    // A service that has not registered yet must never read as "key missing":
+    // the clear path below would delete a healthy provider row.
+    if (settingsService === undefined || credentialsService === undefined) {
+      return { ok: false, problem: 'not-ready', message: 'settings/credentials service not registered yet' }
+    }
     const key = await resolveApiKey(credentialsService, settings().apiKeyEnv)
     if (key === undefined) {
+      // An explicit action with no key is an error; an automatic reconcile
+      // clears the stale row instead.
+      if (force) return { ok: false, problem: 'no-key', message: 'No API key is configured yet.' }
       const target = findRouterNamespace(settingsService, settings().providerRoute)
-      if ('error' in target) return
-      await writeProvider(settingsService, { ns: target.ns, provider: undefined, route: settings().providerRoute })
-      return
+      if ('error' in target) return { ok: false, problem: 'no-service', message: target.error }
+      const removed = await writeProvider(settingsService, { ns: target.ns, provider: undefined, route: settings().providerRoute })
+      return removed.ok ? { ok: true, cleared: true } : { ok: false, problem: 'rejected', message: removed.error }
     }
-    await applyNow({ settingsService, credentialsService, key })
+    // The return matters: /apply sends this straight to the page.
+    return applyNow({ settingsService, credentialsService, key }, { force })
+  }
+
+  /** Wrapper: records every outcome so /status can say why the last reconcile
+   *  did or did not apply. Carries no key material. */
+  const publish = async (options = {}) => {
+    const result = await publishInner(options)
+    state.lastPublish = {
+      at: Date.now(),
+      ok: result?.ok === true,
+      trigger: options.force === true ? 'manual' : 'auto',
+      ...(result?.problem ? { problem: result.problem } : {}),
+      ...(result?.modelCount !== undefined ? { modelCount: result.modelCount } : {}),
+    }
+    return result
   }
 
   ctx.effect(() => {
     ctx.logger?.info(
       `[${name}] mounted (provider route "${settings().providerRoute}", key ref "${settings().apiKeyEnv}").`,
     )
-    // Symptom-2 fix: reconcile the provider row on every mount. If the key
-    // landed while the host was down (e.g. written into the credentials file),
-    // the model selector must still populate without waiting for a page visit.
+  })
+
+  // Symptom-2 fix: reconcile the provider row on every mount. If the key
+  // landed while the host was down (e.g. written into the credentials file),
+  // the model selector must still populate without waiting for a page visit.
+  // Reached through nested inject: this fiber declares no services, so a bare
+  // ctx.get at apply() time can run before the siblings register and then the
+  // reconcile reads as "no service" — or worse, as "key cleared".
+  ctx.inject(['settings', 'credentials'], () => {
     void publish()
+      .then((result) => {
+        if (result?.ok !== true) {
+          ctx.logger?.warn(`[onekey-models] mount reconcile did not apply: ${result?.problem ?? 'unknown'}`)
+        }
+      })
+      .catch((error) => {
+        ctx.logger?.error(`[onekey-models] reconcile on mount failed: ${messageOf(error)}`)
+      })
   })
 
   ctx.on('loader/volatile-update', () => {
-    void publish()
+    void publish().catch((error) => {
+      ctx.logger?.error(`[onekey-models] reconcile after settings change failed: ${messageOf(error)}`)
+    })
   })
 }
 

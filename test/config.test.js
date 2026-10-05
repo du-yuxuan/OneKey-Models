@@ -11,7 +11,10 @@ test('defaults point at the TokenDance gateway', () => {
   // Attribution is fixed in code and overrides are ignored by design.
   assert.equal(s.appUrl, 'plugin://oneKey-models')
   assert.equal(s.modelsDevUrl, 'https://models.dev/api.json?type=all')
-  assert.equal(s.autoConfigure, false)
+  // Auto-apply is ON by default: mount reconcile and the after-authorise
+  // publish are what fill the model selector without a manual Apply press.
+  assert.equal(s.autoConfigure, true)
+  assert.equal(resolveSettings({ autoConfigure: false }).autoConfigure, false)
   assert.equal(s.toolTimeoutMs, 180_000)
   assert.deepEqual(s.visibleModels, [])
   assert.deepEqual(s.imageInputModels, [])
