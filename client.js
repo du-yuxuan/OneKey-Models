@@ -672,8 +672,12 @@ window.__ModuleLoader__.load({
             : visibleCount === 0 ? h('p', { className: 'om-note' }, t('apply.needModels')) : null),
 
         // ── account: balance / redeem / top-up ──
-        AccountSection({
-          status, busy, t, fill, api, fmtCtx,
+        // Rendered as a real element, never called inline: calling it made its
+        // hooks part of this component's sequence, so the `if (!status)` early
+        // return below meant they only ran from the second render on — React
+        // error #310 (rendered more hooks than the previous render).
+        h(AccountSection, {
+          status, busy, t, fill, api,
           onMessage: setMsg,
           onBusy: (v) => setBusy(v ? 'acct' : ''),
         }),
@@ -811,7 +815,10 @@ window.__ModuleLoader__.load({
         h('div', { className: 'om-rowline' },
           h('span', { className: 'om-pill on' },
             h('span', { className: 'om-dot' }),
-            `${t('acct.balance')} ¥${balance?.balanceYuan ?? '—'}${balance?.balanceYuan === undefined ? '' : ''}`),
+// `loadBalance` stores the whole envelope, so the amount lives one
+            // level down under `balance` — reading it off the envelope rendered
+            // a permanent placeholder instead of the live figure.
+            `${t('acct.balance')} ¥${balance?.balance?.balanceYuan ?? '—'}`),
           h('button', { className: 'om-btn', disabled: busy === 'acct', onClick: () => void loadBalance() }, t('acct.refresh'))),
         h('p', { className: 'om-note', style: { margin: '4px 0 0' } }, t('acct.balanceTip')),
 
