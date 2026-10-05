@@ -425,7 +425,8 @@ window.__ModuleLoader__.load({
         const keyOk = Boolean(status.key?.configured)
         const routedOk = Boolean(status.routed?.present)
         const modelsOk = (status.catalog?.models ?? []).some((m) => m.routeable)
-        if (keyOk && !routedOk && modelsOk) {
+        const autoOk = status.settings?.autoConfigure !== false
+        if (keyOk && !routedOk && modelsOk && autoOk) {
           autoApplied.current = true
           void (async () => {
             const r = await api('/apply', { method: 'POST', body: {} })
