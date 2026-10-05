@@ -74,15 +74,6 @@ export function apply(ctx, entry) {
     /** Last /portal/usage request time, for the local 1 req/s limiter. */
     usageAt: 0,
   }
-  ctx.effect(() => {
-    ctx.logger?.info(
-      `[${name}] mounted (provider route "${settings().providerRoute}", key ref "${settings().apiKeyEnv}").`,
-    )
-    // Symptom-2 fix: reconcile the provider row on every mount. If the key
-    // landed while the host was down (e.g. written into the credentials file),
-    // the model selector must still populate without waiting for a page visit.
-    void publish()
-  })
 
   // ── catalog ─────────────────────────────────────────────────────────────────
 
@@ -552,6 +543,16 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
     }
     await applyNow({ settingsService, credentialsService, key })
   }
+
+  ctx.effect(() => {
+    ctx.logger?.info(
+      `[${name}] mounted (provider route "${settings().providerRoute}", key ref "${settings().apiKeyEnv}").`,
+    )
+    // Symptom-2 fix: reconcile the provider row on every mount. If the key
+    // landed while the host was down (e.g. written into the credentials file),
+    // the model selector must still populate without waiting for a page visit.
+    void publish()
+  })
 
   ctx.on('loader/volatile-update', () => {
     void publish()
