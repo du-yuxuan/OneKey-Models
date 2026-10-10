@@ -9,8 +9,10 @@ test('defaults point at the TokenDance gateway', () => {
   assert.equal(s.authOrigin, 'https://tokendance.space')
   assert.equal(s.apiKeyEnv, 'TOKENDANCE_API_KEY')
   // Attribution is fixed in code and overrides are ignored by design.
-  assert.equal(s.appUrl, 'plugin://oneKey-models')
+  assert.equal(s.appUrl, 'http://tokendance-plugin.com/')
   assert.equal(s.modelsDevUrl, 'https://models.dev/api.json?type=all')
+  // Key name shown on the OAuth authorization screen (integration spec).
+  assert.equal(s.keyName, 'DSHPlugin')
   // Auto-apply is ON by default: mount reconcile and the after-authorise
   // publish are what fill the model selector without a manual Apply press.
   assert.equal(s.autoConfigure, true)
@@ -33,10 +35,10 @@ test('providerRoute falls back to the default when malformed', () => {
   assert.equal(resolveSettings({ providerRoute: 'my-route_2' }).providerRoute, 'my-route_2')
 })
 
-test('attribution appUrl is fixed: overrides are ignored, custom scheme survives', () => {
-  assert.equal(resolveSettings({ appUrl: 'not a url' }).appUrl, 'plugin://oneKey-models')
-  assert.equal(resolveSettings({ appUrl: 'https://evil.example.com' }).appUrl, 'plugin://oneKey-models')
-  assert.equal(resolveSettings({ appUrl: '' }).appUrl, 'plugin://oneKey-models')
+test('attribution appUrl is fixed: overrides are ignored', () => {
+  assert.equal(resolveSettings({ appUrl: 'not a url' }).appUrl, 'http://tokendance-plugin.com/')
+  assert.equal(resolveSettings({ appUrl: 'https://evil.example.com' }).appUrl, 'http://tokendance-plugin.com/')
+  assert.equal(resolveSettings({ appUrl: '' }).appUrl, 'http://tokendance-plugin.com/')
   // http(s) fields stay strict — only appUrl is special.
   assert.equal(resolveSettings({ baseURL: 'https://x.example/v1///' }).baseURL, 'https://x.example/v1')
   assert.equal(resolveSettings({ baseURL: 'ftp://x.example' }).baseURL,

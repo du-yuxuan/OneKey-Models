@@ -27,7 +27,7 @@ const FIELDS = {
   displayName: { coerce: text },
   baseURL: { coerce: httpUrl },
   keyName: { coerce: text },
-  // appUrl is deliberately absent: attribution is fixed in code (plugin://oneKey-models)
+  // appUrl is deliberately absent: attribution is fixed in code (http://tokendance-plugin.com/)
   authOrigin: { coerce: httpUrl },
   modelsDevUrl: { coerce: httpUrl },
   autoConfigure: { coerce: bool },

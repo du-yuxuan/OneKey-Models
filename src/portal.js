@@ -44,7 +44,7 @@ export const PAYMENT_MAX = 100_000
  */
 export async function fetchBalance(key, options = {}) {
   const result = await request(`${PORTAL_BASE}/user/balance`, { ...options, key })
-  if (!result.ok) return { ok: false, status: result.status, error: result.error }
+  if (!result.ok) return { ok: false, status: result.status, error: result.error, ...(result.recovery === undefined ? {} : { recovery: result.recovery }) }
   const b = result.data?.balance
   if (b === null || typeof b !== 'object' || typeof b.balance !== 'number') {
     return { ok: false, status: result.status, error: 'balance response carried no balance object' }
@@ -78,7 +78,7 @@ export async function redeemCode(key, code, options = {}) {
     method: 'POST',
     body: { code: trimmed },
   })
-  if (!result.ok) return { ok: false, status: result.status, error: result.error }
+  if (!result.ok) return { ok: false, status: result.status, error: result.error, ...(result.recovery === undefined ? {} : { recovery: result.recovery }) }
   const credits = result.data?.credits
   if (typeof credits !== 'number') {
     return { ok: false, status: result.status, error: 'redemption response carried no credits' }
@@ -125,7 +125,7 @@ export async function fetchUsage(key, query = {}, options = {}) {
   else if (query.successOnly === false) url.searchParams.set('is_success', 'false')
 
   const result = await request(url.toString(), { ...options, key })
-  if (!result.ok) return { ok: false, status: result.status, error: result.error }
+  if (!result.ok) return { ok: false, status: result.status, error: result.error, ...(result.recovery === undefined ? {} : { recovery: result.recovery }) }
   const items = Array.isArray(result.data?.items) ? result.data.items : []
   return {
     ok: true,
@@ -157,7 +157,7 @@ export async function createPaymentSession(key, { amountYuan } = {}, options = {
     method: 'POST',
     body: { amount },
   })
-  if (!result.ok) return { ok: false, status: result.status, error: result.error }
+  if (!result.ok) return { ok: false, status: result.status, error: result.error, ...(result.recovery === undefined ? {} : { recovery: result.recovery }) }
   const session = result.data?.session
   if (typeof session?.id !== 'string' || typeof session?.payment_url !== 'string') {
     return { ok: false, status: result.status, error: 'payment response carried no session' }
@@ -180,7 +180,7 @@ export async function fetchPaymentStatus(key, sessionId, options = {}) {
   const id = typeof sessionId === 'string' ? sessionId.trim() : ''
   if (id === '') return { ok: false, status: 0, error: 'session id is required' }
   const result = await request(`${PORTAL_BASE}/payment/sessions/${encodeURIComponent(id)}`, { ...options, key })
-  if (!result.ok) return { ok: false, status: result.status, error: result.error }
+  if (!result.ok) return { ok: false, status: result.status, error: result.error, ...(result.recovery === undefined ? {} : { recovery: result.recovery }) }
   const session = result.data?.session ?? result.data
   if (session === null || typeof session !== 'object' || typeof session.status !== 'string') {
     return { ok: false, status: result.status, error: 'payment status response carried no session' }

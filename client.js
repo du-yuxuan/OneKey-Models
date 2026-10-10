@@ -138,6 +138,9 @@ window.__ModuleLoader__.load({
         'acct.usageEmpty': '暂无调用记录',
         'acct.needKey': '完成第 1 步后即可使用账户功能',
         'acct.payHint': '扫码后本页自动确认到账；未到账前请勿重复发起',
+        'acct.recoverTopup': '余额不足，请先充值',
+        'acct.recoverReauth': '授权已失效，请重新获取 API Key',
+        'acct.recoverQuota': '额度已用尽，请等待周期刷新或重新授权',
         'td.body': 'TokenDance 是一个模型聚合网关：一个地址、一把 Key，就能调用市面上最新最热的大模型（GLM、DeepSeek、Kimi、Qwen、MiniMax 等），支持对话、生图、多模态、Jev 判定等多种能力。本插件的模型目录与调用全部由 TokenDance 提供支持，配置只保存在你自己的电脑上。',
         'td.visit': '访问 tokendance.space',
         'common.loading': '加载中…',
@@ -244,6 +247,9 @@ window.__ModuleLoader__.load({
         'acct.usageEmpty': 'No calls yet',
         'acct.needKey': 'Finish step 1 to use account features',
         'acct.payHint': 'The page confirms the payment automatically once it lands; do not start a second session before it does',
+        'acct.recoverTopup': 'Balance exhausted — top up first',
+        'acct.recoverReauth': 'Key invalid or expired — re-authorise',
+        'acct.recoverQuota': 'Quota reached — wait for the reset or re-authorise',
         'td.what': 'What is TokenDance?',
         'td.body': 'TokenDance is a model aggregation gateway: one endpoint and one key for the newest hot models (GLM, DeepSeek, Kimi, Qwen, MiniMax and more), covering chat, image generation, multimodal input and Jev judgement. This plugin is powered by TokenDance for its catalog and calls, and every configuration stays on your own machine.',
         'td.visit': 'Visit tokendance.space',
@@ -734,12 +740,24 @@ window.__ModuleLoader__.load({
       const pollRef = useRef(null)
       useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
+      // Portal failures may carry TokenDance-Recovery-Action
+      // (docs/api-key-oauth.md#recover-key): turn it into the next step for the
+      // user instead of a bare upstream error.
+      const recoveryMsg = (r) => {
+        const base = r.data?.error ?? `HTTP ${r.status}`
+        const hint = {
+          top_up_balance: t('acct.recoverTopup'),
+          reauthorize_api_key: t('acct.recoverReauth'),
+          api_key_quota: t('acct.recoverQuota'),
+        }[r.data?.recovery]
+        return hint === undefined ? base : `${base} — ${hint}`
+      }
       const loadBalance = async () => {
         onBusy(true)
         const r = await api('/portal/balance')
         onBusy(false)
         if (r.data?.ok) setBalance(r.data)
-        else if (r.status !== 0) onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+        else if (r.status !== 0) onMessage({ kind: 'err', text: fill(t('common.error'), { msg: recoveryMsg(r) }) })
       }
       const loadUsage = async () => {
         const r = await api('/portal/usage?limit=10')
@@ -763,7 +781,7 @@ window.__ModuleLoader__.load({
           setCode('')
           void loadBalance()
         } else {
-          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: recoveryMsg(r) }) })
         }
       }
 
@@ -795,7 +813,7 @@ window.__ModuleLoader__.load({
         const r = await api('/portal/payment', { method: 'POST', body: { amount: amountYuan } })
         onBusy(false)
         if (!r.data?.ok) {
-          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? `HTTP ${r.status}` }) })
+          onMessage({ kind: 'err', text: fill(t('common.error'), { msg: recoveryMsg(r) }) })
           return
         }
         setSession(r.data.session)
