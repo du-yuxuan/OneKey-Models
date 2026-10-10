@@ -16,8 +16,8 @@ import { authorizationUrl, createPkce, openCallback } from '../src/oauth.js'
 import { exchangeCode } from '../src/http.js'
 
 const AUTH_ORIGIN = process.env.TOKENDANCE_AUTH_ORIGIN ?? 'https://tokendance.space'
-const APP_URL = process.env.TOKENDANCE_APP_URL ?? 'https://github.com/du-yuxuan/OneKey-Models'
-const KEY_NAME = process.env.TOKENDANCE_KEY_NAME ?? 'DeepSeek Harness (OneKey-Models)'
+const APP_URL = process.env.TOKENDANCE_APP_URL ?? 'http://tokendance-plugin.com/'
+const KEY_NAME = process.env.TOKENDANCE_KEY_NAME ?? 'DSHPlugin'
 const KEY_FILE = process.env.TOKENDANCE_KEY_FILE ?? join(tmpdir(), 'tokendance-e2e.key')
 // How long to sit on the loopback callback. Interactive sign-in on a phone is
 // slow, so the default is generous; override with TOKENDANCE_WAIT_MS.

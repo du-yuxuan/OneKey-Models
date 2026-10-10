@@ -23,7 +23,7 @@ const DEFAULT_AUTH_ORIGIN = 'https://tokendance.space'
 const DEFAULT_MODELS_DEV = 'https://models.dev/api.json?type=all'
 const DEFAULT_KEY_REF = 'TOKENDANCE_API_KEY'
 const DEFAULT_ROUTE = 'tokendance'
-const DEFAULT_APP_URL = 'plugin://oneKey-models'
+const DEFAULT_APP_URL = 'http://tokendance-plugin.com/'
 export const Config = Schema.object({
   /** Credential reference (POSIX identifier), never the key itself. */
   apiKeyEnv: Schema.string().default(DEFAULT_KEY_REF),
@@ -32,13 +32,14 @@ export const Config = Schema.object({
   providerRoute: Schema.string().default(DEFAULT_ROUTE),
   displayName: Schema.string().default('TokenDance'),
   baseURL: Schema.string().default(DEFAULT_BASE_URL),
-  /** Stable app URL used for TokenDance call attribution. Must NOT be a random
-  /** App attribution URL, fixed in code. The TokenDance docs allow any URL-shaped
-   *  value including custom schemes (`app://example-desktop` style); a plugin is
-   *  an application in its own right, so we attribute every call and key to this
-   *  constant and the schema deliberately does NOT expose it as editable. */
+  /** App attribution URL, fixed in code per the TokenDance integration spec
+   *  (app `DSHPlugin`, App URL `http://tokendance-plugin.com/`). The docs require
+   *  OAuth `app_url` and the per-request `X-App-URL` header to carry this
+   *  IDENTICAL value, and the schema deliberately does NOT expose it as
+   *  editable, so neither a stale setting nor a crafted form payload can
+   *  re-point attribution. */
   appUrl: Schema.string().default(DEFAULT_APP_URL),
-  keyName: Schema.string().default('DeepSeek Harness (OneKey-Models)'),
+  keyName: Schema.string().default('DSHPlugin'),
   /** Where the OAuth authorization page and the code exchange live. */
   authOrigin: Schema.string().default(DEFAULT_AUTH_ORIGIN),
   /** models.dev catalog used to enrich each model with modalities, limits and
@@ -97,7 +98,7 @@ export function resolveSettings(entry) {
     // stored override is ignored, so neither a stale setting nor a crafted form
     // payload can re-point attribution.
     appUrl: DEFAULT_APP_URL,
-    keyName: str(plain.keyName, 'DeepSeek Harness (OneKey-Models)'),
+    keyName: str(plain.keyName, 'DSHPlugin'),
     authOrigin: url(str(plain.authOrigin, DEFAULT_AUTH_ORIGIN), DEFAULT_AUTH_ORIGIN),
     modelsDevUrl: url(str(plain.modelsDevUrl, DEFAULT_MODELS_DEV), DEFAULT_MODELS_DEV),
     autoConfigure: plain.autoConfigure !== false,
