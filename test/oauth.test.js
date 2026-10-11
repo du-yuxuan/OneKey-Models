@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { createPkce, authorizationUrl, openCallback } from '../src/oauth.js'
+import { createPkce, authorizationUrl, openCallback, safeReturnTo } from '../src/oauth.js'
 
 test('createPkce verifier is 72 chars of the RFC 7636 alphabet', () => {
   const { verifier, challenge, challengeMethod } = createPkce()
@@ -70,5 +70,36 @@ test('waitForCode times out to undefined instead of hanging', async () => {
     assert.equal(await cb.waitForCode(50), undefined)
   } finally {
     await cb.close()
+  }
+})
+
+test('safeReturnTo keeps loopback redirects local and accepts only the dsh://open deep link', () => {
+  assert.equal(safeReturnTo('http://127.0.0.1:19387/'), 'http://127.0.0.1:19387')
+  assert.equal(safeReturnTo('https://localhost:8443'), 'https://localhost:8443')
+  assert.equal(safeReturnTo('dsh://open'), 'dsh://open')
+  assert.equal(safeReturnTo('dsh://open/'), 'dsh://open')
+  assert.equal(safeReturnTo('dsh://settings'), '')
+  assert.equal(safeReturnTo('dsh-app://app/'), '')
+  assert.equal(safeReturnTo('https://evil.example/'), '')
+  assert.equal(safeReturnTo('https://192.168.1.9:19387'), '')
+  assert.equal(safeReturnTo('javascript:alert(1)'), '')
+  assert.equal(safeReturnTo('null'), '')
+  assert.equal(safeReturnTo(''), '')
+  assert.equal(safeReturnTo(undefined), '')
+})
+
+test('the callback page carries a return button only for a safe target', async () => {
+  const deep = await openCallback({ returnTo: 'dsh://open' })
+  const evil = await openCallback({ returnTo: 'https://evil.example/' })
+  try {
+    const deepBody = await (await fetch(deep.callbackUrl)).text()
+    assert.match(deepBody, /id="back" href="dsh:\/\/open"/)
+    assert.match(deepBody, /打开 DeepSeek Harness/)
+    const evilBody = await (await fetch(evil.callbackUrl)).text()
+    assert.doesNotMatch(evilBody, /id="back"/)
+    assert.doesNotMatch(evilBody, /evil\.example/)
+  } finally {
+    await deep.close()
+    await evil.close()
   }
 })

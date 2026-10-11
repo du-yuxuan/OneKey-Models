@@ -53,7 +53,8 @@ window.__ModuleLoader__.load({
         'key.get': '一键获取 API Key',
         'key.getting': '正在准备授权…',
         'key.open': '打开 TokenDance 授权页',
-        'key.openHint': '点击后在新标签页登录 TokenDance 并同意授权，页面会自动跳回本机完成绑定。',
+        'key.openHint': '已在新标签页打开 TokenDance，登录并同意授权即可；本机会自动完成换取，回来这页会自己变成已配置。',
+        'key.timeout': '等待授权超时，请重新点击「一键获取」',
         'key.codeLabel': '授权码（可选）',
         'key.codePh': '粘贴授权页显示的 10 分钟授权码，可跳过自动跳回',
         'key.finish': '完成授权',
@@ -163,7 +164,8 @@ window.__ModuleLoader__.load({
         'key.get': 'Get an API key in one click',
         'key.getting': 'Preparing authorisation…',
         'key.open': 'Open the TokenDance authorisation page',
-        'key.openHint': 'Sign in to TokenDance and approve in the new tab; the page jumps back here to finish binding automatically.',
+        'key.openHint': 'TokenDance opened in a new tab — sign in and approve; this page swaps the code over on its own and flips to configured once you return.',
+        'key.timeout': 'Timed out waiting for authorisation — press the one-click button again',
         'key.codeLabel': 'Authorisation code (optional)',
         'key.codePh': 'Paste the 10-minute code shown on the page to skip the automatic jump-back',
         'key.finish': 'Finish authorisation',
@@ -263,66 +265,93 @@ window.__ModuleLoader__.load({
     }
 
     const CSS = `
-.om-page { display: flex; flex-direction: column; gap: 16px; color: var(--dsw-alias-label-primary); font-family: var(--dsw-font-family); }
-.om-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.om-logo { width: 34px; height: 34px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-settings-card-fill); border: 1px solid var(--dsw-alias-border-l1); display: grid; place-items: center; flex: none; }
-.om-h1 { font-size: 18px; font-weight: 650; margin: 0; }
-.om-sub { font-size: var(--dsw-font-xs-13); color: var(--dsw-alias-label-secondary); margin: 2px 0 0; }
-.om-badge { display: inline-flex; align-items: center; gap: 6px; font-size: var(--dsw-font-xxs-12); padding: 3px 10px; border-radius: 999px; background: var(--dsw-alias-settings-card-fill); border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); text-decoration: none; }
+.om-page { display: flex; flex-direction: column; gap: 14px; color: var(--dsw-alias-label-primary); font-family: var(--dsw-font-family); font-size: 13px; line-height: 1.5; }
+.om-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.om-logo { width: 32px; height: 32px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-inverted); display: grid; place-items: center; flex: none; }
+.om-logo svg { width: 18px; height: 18px; }
+.om-h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.om-sub { font-size: 12px; color: var(--dsw-alias-label-secondary); margin: 1px 0 0; line-height: 1.4; }
+.om-badge { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); text-decoration: none; transition: background 150ms ease; }
 .om-badge:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .om-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-success-primary); flex: none; }
-.om-card { background: var(--dsw-alias-settings-card-fill); border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-lg); padding: 16px; }
-.om-step { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.om-num { width: 20px; height: 20px; border-radius: 50%; background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-inverted); font-size: 12px; display: grid; place-items: center; flex: none; }
-.om-rowline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.om-pill { display: inline-flex; align-items: center; gap: 6px; font-size: var(--dsw-font-xs-13); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); }
+.om-card { background: var(--dsw-alias-settings-card-fill); border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-lg); padding: 14px 16px; }
+.om-step { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.om-num { width: 18px; height: 18px; border-radius: 50%; background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-inverted); font-size: 11px; font-weight: 600; display: grid; place-items: center; flex: none; }
+.om-rowline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.om-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); }
 .om-pill.on { color: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary); }
 .om-pill.warn { color: var(--dsw-alias-state-warn-primary); border-color: var(--dsw-alias-state-warn-primary); }
-.om-btn { font: inherit; font-size: var(--dsw-font-xs-13); padding: 7px 14px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-primary); cursor: pointer; }
+.om-btn { font: inherit; font-size: 13px; padding: 6px 12px; min-height: 32px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-primary); cursor: pointer; transition: background 150ms ease, transform 100ms ease-out; }
 .om-btn:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
-.om-btn:disabled { opacity: 0.5; cursor: default; }
-.om-btn.primary { background: var(--dsw-alias-button-primary-fill); border-color: transparent; color: var(--dsw-alias-label-primary-inverted); }
+.om-btn:active:not(:disabled) { transform: scale(0.97); }
+.om-btn:disabled { opacity: 0.45; cursor: default; }
+.om-btn.primary { min-height: 36px; padding: 8px 14px; background: var(--dsw-alias-button-primary-fill); border-color: transparent; color: var(--dsw-alias-label-primary-inverted); }
 .om-btn.primary:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover); }
 .om-btn.danger { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary); }
-.om-btn:focus-visible, .om-input:focus-visible, .om-check:focus-visible, a:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 1px; }
-.om-input { font: inherit; font-size: var(--dsw-font-xs-13); padding: 7px 10px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); min-width: 0; }
+.om-btn:focus-visible, .om-input:focus-visible, .om-check:focus-visible, .om-chip:focus-visible, .om-toggle:focus-visible, a:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+.om-input { font: inherit; font-size: 13px; padding: 6px 10px; min-height: 32px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); min-width: 0; transition: border-color 150ms ease; }
+.om-input:hover:not(:disabled) { border-color: var(--dsw-alias-border-l3); }
+.om-input:focus { border-color: var(--dsw-alias-button-primary-fill); }
 .om-input::placeholder { color: var(--dsw-alias-label-caption); }
-.om-note { font-size: var(--dsw-font-xs-13); color: var(--dsw-alias-label-tertiary); margin: 8px 0 0; }
-.om-msg { font-size: var(--dsw-font-xs-13); padding: 8px 12px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l1); }
-.om-msg.ok { color: var(--dsw-alias-state-success-primary); }
-.om-msg.err { color: var(--dsw-alias-state-error-primary); }
+.om-note { font-size: 12px; color: var(--dsw-alias-label-tertiary); margin: 8px 0 0; line-height: 1.5; }
+.om-msg { font-size: 12px; padding: 9px 12px; border-radius: var(--dsw-radius-md); border: 1px solid var(--dsw-alias-border-l1); line-height: 1.5; }
+.om-msg.ok { color: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary); }
+.om-msg.err { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary); }
 .om-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
-.om-chip { font: inherit; font-size: var(--dsw-font-xxs-12); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; }
-.om-chip:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.om-chip { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; transition: background 150ms ease, color 150ms ease, border-color 150ms ease; }
+.om-chip:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .om-chip.on { background: var(--dsw-alias-button-primary-fill); border-color: transparent; color: var(--dsw-alias-label-primary-inverted); }
-.om-list { border-top: 1px solid var(--dsw-alias-border-l1); max-height: 420px; overflow: auto; }
-.om-model { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.om-list { border-top: 1px solid var(--dsw-alias-border-l1); max-height: 380px; overflow: auto; }
+.om-model { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.om-model:last-child { border-bottom: none; }
 .om-model:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .om-check { accent-color: var(--dsw-alias-button-primary-fill); width: 15px; height: 15px; flex: none; cursor: pointer; }
 .om-mid { flex: 1; min-width: 0; }
 .om-mid-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.om-id { font-size: var(--dsw-font-xs-13); font-weight: 600; }
-.om-name { font-size: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
-.om-ctx { font-size: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-caption); }
-.om-tags { display: flex; gap: 4px; flex-wrap: wrap; }
-.om-tag { font-size: var(--dsw-font-xxs-12); padding: 1px 7px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l1); color: var(--dsw-alias-label-secondary); }
+.om-id { font-size: 13px; font-weight: 500; }
+.om-name { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.om-ctx { font-size: 12px; color: var(--dsw-alias-label-caption); }
+.om-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.om-tag { font-size: 11px; padding: 1px 6px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l1); color: var(--dsw-alias-label-secondary); }
 .om-tag.tool { color: var(--dsw-alias-state-warn-primary); }
-.om-toggle { font: inherit; font-size: var(--dsw-font-xxs-12); padding: 3px 9px; border-radius: 999px; border: 1px dashed var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer; flex: none; }
+.om-toggle { font: inherit; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer; flex: none; transition: color 150ms ease, border-color 150ms ease; }
+.om-toggle:hover { color: var(--dsw-alias-label-secondary); border-color: var(--dsw-alias-border-l3); }
 .om-toggle.on { border-style: solid; border-color: var(--dsw-alias-state-success-primary); color: var(--dsw-alias-state-success-primary); }
 .om-tail { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-top: 12px; flex-wrap: wrap; }
-.om-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.om-field { display: flex; flex-direction: column; gap: 5px; }
-.om-field > label { font-size: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
+.om-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; max-width: 720px; }
+.om-field { display: flex; flex-direction: column; gap: 4px; }
+.om-field > label { font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .om-checks { display: flex; flex-direction: column; gap: 8px; }
-.om-checks label { display: flex; align-items: center; gap: 8px; font-size: var(--dsw-font-xs-13); cursor: pointer; }
-.om-td { display: flex; gap: 14px; align-items: flex-start; }
-.om-td-logo { width: 44px; height: 44px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l1); display: grid; place-items: center; flex: none; overflow: hidden; }
-.om-td-logo img { max-width: 34px; max-height: 34px; }
-.om-td h4 { margin: 0 0 6px; font-size: 14px; }
-.om-td p { margin: 0; font-size: var(--dsw-font-xs-13); color: var(--dsw-alias-label-secondary); line-height: 1.7; }
+.om-checks label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.om-checks input[type=checkbox] { accent-color: var(--dsw-alias-button-primary-fill); width: 15px; height: 15px; }
+.om-td { display: flex; gap: 12px; align-items: flex-start; }
+.om-td-logo { width: 40px; height: 40px; border-radius: var(--dsw-radius-md); background: #fff; border: 1px solid var(--dsw-alias-border-l1); display: grid; place-items: center; flex: none; overflow: hidden; }
+.om-td-logo img { max-width: 32px; max-height: 32px; }
+.om-td h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.om-td p { margin: 0; font-size: 12px; color: var(--dsw-alias-label-secondary); line-height: 1.6; }
 .om-link { color: var(--dsw-alias-link); text-decoration: none; }
 .om-link:hover { text-decoration: underline; }
-.om-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-caption); font-size: var(--dsw-font-xs-13); }
+.om-empty { padding: 20px; text-align: center; color: var(--dsw-alias-label-caption); font-size: 12px; }
+.om-qr { background: #fff; border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-md); padding: 8px; width: fit-content; margin: 0 auto; }
+.om-qr svg { display: block; width: 176px; height: 176px; }
+.om-page details > summary { list-style: none; cursor: pointer; }
+.om-page details > summary::-webkit-details-marker { display: none; }
+.om-page details > summary::after { content: '▸'; margin-left: auto; font-size: 11px; color: var(--dsw-alias-label-tertiary); transition: transform 150ms ease; }
+.om-page details[open] > summary::after { transform: rotate(90deg); }
+/* dialog (top-up / redemption) */
+.om-modal-backdrop { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.32); display: grid; place-items: center; padding: 24px; }
+.om-modal { width: 100%; max-width: 336px; font-size: 13px; background: var(--dsw-alias-settings-card-fill); border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-lg); box-shadow: 0 16px 40px rgba(0,0,0,0.20); overflow: hidden; }
+.om-modal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.om-modal-head h3 { margin: 0; flex: 1; font-size: 13px; font-weight: 600; }
+.om-modal-close { font: inherit; font-size: 16px; line-height: 1; width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer; }
+.om-modal-close:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.om-modal-body { padding: 14px; }
+.om-modal-close:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .om-btn, .om-input, .om-chip, .om-toggle, .om-badge, .om-page details > summary::after { transition: none; }
+  .om-btn:active:not(:disabled) { transform: none; }
+}
 `
 
     // ── helpers ────────────────────────────────────────────────────────────
@@ -389,19 +418,39 @@ window.__ModuleLoader__.load({
       const [imgIn, setImgIn] = useState(null) // Set<id> | null
       const [draft, setDraft] = useState(null) // advanced-form copy of editable settings
       const alive = useRef(true)
+      /** The auth tab opened inside the click gesture; pointed at TokenDance once /auth/start answers. */
+      const authTab = useRef(null)
 
       useEffect(() => () => { alive.current = false }, [])
 
       const load = useCallback(async () => {
         const r = await api('/status')
-        if (!alive.current) return
+        if (!alive.current) return null
         if (!r.ok || !r.data?.ok) {
           setError(r.data?.error ?? `HTTP ${r.status}`)
-          return
+          return null
         }
         setError('')
         setStatus(r.data)
+        return r.data
       }, [])
+
+      // After the OAuth handshake the host persists the key asynchronously, so a
+      // single /status read can still report `configured: false`. Poll until it
+      // lands, then refresh the catalog — otherwise the panel keeps showing the
+      // keyless state until the page is closed and reopened.
+      const settleKey = useCallback(async () => {
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const data = await load()
+          if (!alive.current) return
+          if (data?.key?.configured) {
+            await api('/catalog/refresh', { method: 'POST', body: {} })
+            await load()
+            return
+          }
+          await new Promise((resolve) => setTimeout(resolve, 700))
+        }
+      }, [load])
 
       useEffect(() => { void load() }, [load])
 
@@ -457,6 +506,47 @@ window.__ModuleLoader__.load({
       const keyConfigured = Boolean(status?.key?.configured)
       const routed = status?.routed?.present ? status.routed : null
 
+      // Authorisation now finishes on the host: it takes the code from the
+      // loopback callback the instant the browser returns, so this panel only
+      // has to watch. Poll /status until the key lands, then re-seed every
+      // derived view — that is why coming back from the auth tab updates the
+      // page instead of demanding a close/reopen. The deps deliberately leave
+      // `status` out: re-reading it would tear down this very poll mid-flight.
+      const authWatch = useRef(undefined)
+      useEffect(() => {
+        authWatch.current = undefined
+        if (!auth) return
+        let cancelled = false
+        let tries = 0
+        const tick = async () => {
+          if (cancelled || !alive.current) return
+          tries += 1
+          const data = await load()
+          if (cancelled || !alive.current) return
+          if (data?.key?.configured) {
+            setAuth(null)
+            setCode('')
+            setMsg({ kind: 'ok', text: t('key.done') })
+            setVisible(null)
+            setImgIn(null)
+            setDraft(null)
+            void settleKey()
+            return
+          }
+          if (tries >= 150) {
+            setAuth(null)
+            setMsg({ kind: 'err', text: t('key.timeout') })
+            return
+          }
+          authWatch.current = setTimeout(() => { void tick() }, 2000)
+        }
+        authWatch.current = setTimeout(() => { void tick() }, 1200)
+        return () => {
+          cancelled = true
+          clearTimeout(authWatch.current)
+        }
+      }, [auth, load, settleKey, t])
+
       const act = useCallback(async (which, path, body, onSuccess) => {
         setBusy(which)
         setMsg(null)
@@ -467,16 +557,44 @@ window.__ModuleLoader__.load({
         else setMsg({ kind: 'err', text: fill(t('common.error'), { msg: r.data?.error ?? r.data?.problem ?? `HTTP ${r.status}` }) })
       }, [t])
 
-      const startAuth = () => act('auth-start', '/auth/start', {}, (data) => {
-        setAuth({ url: data.url, callbackUrl: data.callbackUrl, keyName: data.keyName })
-        setCode('')
-      })
+      // The tab has to exist before the round trip finishes: Chrome refuses a
+      // window.open() whose first statement runs after an await, so about:blank
+      // is opened inside the click and aimed at TokenDance once the host replies.
+      // That is what makes "one click" actually one click.
+      const startAuth = () => {
+        let tab = null
+        try { tab = window.open('about:blank', '_blank') } catch { tab = null }
+        authTab.current = tab
+        // A loopback web GUI can be navigated straight back to; the desktop panel
+        // runs on dsh-app://, whose origin no browser tab can return from, so it
+        // hands the shell's registered deep link instead — one target that works
+        // from any external browser, and the shell focuses its window for it.
+        const returnTo = (/^https?:$/.test(window.location.protocol)
+          && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname))
+          ? window.location.origin
+          : 'dsh://open'
+        act('auth-start', '/auth/start', { returnTo }, (data) => {
+          setAuth({ url: data.url, callbackUrl: data.callbackUrl, keyName: data.keyName })
+          setCode('')
+          const opened = authTab.current
+          authTab.current = null
+          if (data.url && opened && !opened.closed) {
+            try { opened.location.replace(data.url) } catch { opened.location.href = data.url }
+          } else if (data.url) {
+            window.open(data.url, '_blank')
+          }
+        })
+      }
 
       const finishAuth = () => act('auth-finish', '/auth/finish', code.trim() ? { code: code.trim() } : {}, () => {
         setAuth(null)
         setCode('')
         setMsg({ kind: 'ok', text: t('key.done') })
-        void load()
+        // Reset seeded state so they re-seed from fresh status after auth
+        setVisible(null)
+        setImgIn(null)
+        setDraft(null)
+        void settleKey()
       })
 
       const cancelAuth = () => act('auth-cancel', '/auth/cancel', {}, () => {
@@ -564,7 +682,7 @@ window.__ModuleLoader__.load({
             h('svg', { viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true' },
               h('path', {
                 d: 'M14 3a7 7 0 1 0-6.3 10.05L9 14.35V17h2.5v2h2v2h4v-4.7l-4.15-4.15A7 7 0 0 0 14 3Zm-5 7a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z',
-                fill: 'var(--dsw-alias-button-primary-fill)',
+                fill: 'currentColor',
               }))),
           h('div', null,
             h('h2', { className: 'om-h1' }, t('title')),
@@ -589,7 +707,7 @@ window.__ModuleLoader__.load({
                 }, t('key.clear')))
               : h(Fragment, null,
                 h('button', {
-                  className: 'om-btn primary', disabled: busy === 'auth-start',
+                  className: 'om-btn primary', disabled: busy === 'auth-start' || Boolean(auth),
                   onClick: startAuth,
                 }, busy === 'auth-start' ? t('key.getting') : t('key.get')),
                 auth?.url ? h('a', {
@@ -729,6 +847,31 @@ window.__ModuleLoader__.load({
      * All requests go through the plugin HTTP server with the stored key; the
      * key itself never reaches this page.
      */
+    /**
+     * Centered dialog. Rendered as a component (`h(Modal, …)`), never called as
+     * a plain function, so its hooks stay in their own sequence. Dismissed by
+     * the close button, a backdrop click, or Escape.
+     */
+    function Modal({ title, onClose, children }) {
+      const close = useRef(onClose)
+      close.current = onClose
+      useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') close.current() }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [])
+      return h('div', {
+        className: 'om-modal-backdrop',
+        onMouseDown: (e) => { if (e.target === e.currentTarget) close.current() },
+      },
+      h('div', { className: 'om-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+        h('div', { className: 'om-modal-head' },
+          h('h3', null, title),
+          h('button', { className: 'om-modal-close', onClick: () => close.current(), 'aria-label': 'Close' },
+            '\u00d7')),
+        h('div', { className: 'om-modal-body' }, children)))
+    }
+
     function AccountSection({ status, busy, t, fill, api, onMessage, onBusy }) {
       const hasKey = Boolean(status?.key?.configured)
       const [balance, setBalance] = useState(null) // { balance, balanceYuan, ... }
@@ -737,6 +880,7 @@ window.__ModuleLoader__.load({
       const [amount, setAmount] = useState('10')
       const [session, setSession] = useState(null) // normalized payment session
       const [qr, setQr] = useState('') // svg from /portal/payment
+      const [modal, setModal] = useState(null) // null | 'redeem' | 'pay'
       const pollRef = useRef(null)
       useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
@@ -779,6 +923,7 @@ window.__ModuleLoader__.load({
         if (r.data?.ok) {
           onMessage({ kind: 'ok', text: fill(t('acct.redeemDone'), { yuan: r.data.creditsYuan }) })
           setCode('')
+          setModal(null)
           void loadBalance()
         } else {
           onMessage({ kind: 'err', text: fill(t('common.error'), { msg: recoveryMsg(r) }) })
@@ -822,6 +967,10 @@ window.__ModuleLoader__.load({
         startPolling(r.data.session.id)
       }
       const closePayment = () => { stopPolling(); setSession(null); setQr('') }
+      const closeModal = () => {
+        if (modal === 'pay') closePayment()
+        setModal(null)
+      }
 
       if (!hasKey) {
         return h('section', { className: 'om-card' },
@@ -833,42 +982,14 @@ window.__ModuleLoader__.load({
         h('div', { className: 'om-rowline' },
           h('span', { className: 'om-pill on' },
             h('span', { className: 'om-dot' }),
-// `loadBalance` stores the whole envelope, so the amount lives one
-            // level down under `balance` — reading it off the envelope rendered
+            // `loadBalance` stores the whole envelope, so the amount lives one
+            // level down under `balance`; reading it off the envelope rendered
             // a permanent placeholder instead of the live figure.
-            `${t('acct.balance')} ¥${balance?.balance?.balanceYuan ?? '—'}`),
-          h('button', { className: 'om-btn', disabled: busy === 'acct', onClick: () => void loadBalance() }, t('acct.refresh'))),
+            `${t('acct.balance')} \u00a5${balance?.balance?.balanceYuan ?? '\u2014'}`),
+          h('button', { className: 'om-btn', disabled: busy === 'acct', onClick: () => void loadBalance() }, t('acct.refresh')),
+          h('button', { className: 'om-btn', onClick: () => setModal('redeem') }, t('acct.redeem')),
+          h('button', { className: 'om-btn primary', onClick: () => setModal('pay') }, t('acct.topup'))),
         h('p', { className: 'om-note', style: { margin: '4px 0 0' } }, t('acct.balanceTip')),
-
-        h('div', { className: 'om-rowline', style: { marginTop: '12px' } },
-          h('input', {
-            className: 'om-input', style: { flex: '1 1 200px' },
-            placeholder: t('acct.redeemPh'), value: code,
-            onChange: (e) => setCode(e.target.value),
-          }),
-          h('button', { className: 'om-btn', disabled: busy === 'acct' || !code.trim(), onClick: () => void redeem() }, t('acct.redeem'))),
-
-        h('div', { className: 'om-rowline', style: { marginTop: '12px' } },
-          h('input', {
-            className: 'om-input', style: { flex: '1 1 120px', maxWidth: '160px' },
-            type: 'number', min: 1, step: 1, value: amount,
-            onChange: (e) => setAmount(e.target.value),
-            'aria-label': t('acct.amount'),
-          }),
-          h('button', { className: 'om-btn primary', disabled: busy === 'acct' || session, onClick: () => void startPayment() },
-            session ? t('acct.waiting') : t('acct.createSession'))),
-        session ? h(Fragment, null,
-          qr ? h('div', { className: 'om-qr', style: { marginTop: '12px', textAlign: 'center' },
-            // SVG comes from the host half; injected as raw markup, never user input.
-            dangerouslySetInnerHTML: { __html: qr } }) : null,
-          h('p', { className: 'om-note', style: { textAlign: 'center', margin: '8px 0 0' } },
-            session.status === 'paid' ? t('acct.paid')
-              : session.expired ? t('acct.expired') : t('acct.scan')),
-          session.alipayUrl ? h('p', { style: { textAlign: 'center', margin: '8px 0 0' } },
-            h('a', { className: 'om-link', href: session.alipayUrl }, t('acct.alipay'))) : null,
-          h('p', { className: 'om-note', style: { textAlign: 'center', margin: '4px 0 0' } }, t('acct.payHint')),
-          h('div', { style: { textAlign: 'center', marginTop: '8px' } },
-            h('button', { className: 'om-btn', onClick: closePayment }, t('acct.close')))) : null,
 
         h('div', { style: { marginTop: '14px' } },
           h('div', { className: 'om-step', style: { fontSize: '12px' } }, t('acct.usage')),
@@ -878,13 +999,48 @@ window.__ModuleLoader__.load({
                 usage.map((u) => h('div', { key: u.id, className: 'om-model' },
                   h('div', { className: 'om-mid' },
                     h('div', { className: 'om-mid-top' },
-                      h('span', { className: 'om-id' }, u.modelId ?? u.model_id ?? '—'),
-                      h('span', { className: 'om-ctx' }, `¥${((u.cost ?? 0) / 1e6).toFixed(4)}`)),
+                      h('span', { className: 'om-id' }, u.modelId ?? u.model_id ?? '\u2014'),
+                      h('span', { className: 'om-ctx' }, `\u00a5${((u.cost ?? 0) / 1e6).toFixed(4)}`)),
                     h('div', { className: 'om-tags' },
                       h('span', { className: 'om-tag' }, u.providerName ?? u.provider_name ?? ''),
                       h('span', { className: 'om-tag' }, String(u.totalTokens ?? u.total_tokens ?? 0)),
-                      h('span', { className: 'om-tag' }, new Date(u.createdAt ?? u.created_at).toLocaleString())))))))
-      )
+                      h('span', { className: 'om-tag' }, new Date(u.createdAt ?? u.created_at).toLocaleString()))))))),
+
+        modal === 'redeem' ? h(Modal, { title: t('acct.redeem'), onClose: closeModal },
+          h('input', {
+            className: 'om-input', style: { width: '100%' }, autoFocus: true,
+            placeholder: t('acct.redeemPh'), value: code,
+            onChange: (e) => setCode(e.target.value),
+            onKeyDown: (e) => { if (e.key === 'Enter' && code.trim()) void redeem() },
+          }),
+          h('div', { className: 'om-tail', style: { marginTop: '12px' } },
+            h('button', {
+              className: 'om-btn primary', disabled: busy === 'acct' || !code.trim(),
+              onClick: () => void redeem(),
+            }, t('acct.redeem')))) : null,
+
+        modal === 'pay' ? h(Modal, { title: t('acct.topup'), onClose: closeModal },
+          session ? h(Fragment, null,
+            qr ? h('div', { className: 'om-qr', dangerouslySetInnerHTML: { __html: qr } }) : null,
+            h('p', { className: 'om-note', style: { textAlign: 'center', margin: '10px 0 0' } },
+              session.status === 'paid' ? t('acct.paid')
+                : session.expired ? t('acct.expired') : t('acct.scan')),
+            session.alipayUrl ? h('p', { style: { textAlign: 'center', margin: '8px 0 0' } },
+              h('a', { className: 'om-link', href: session.alipayUrl }, t('acct.alipay'))) : null,
+            h('p', { className: 'om-note', style: { textAlign: 'center', margin: '6px 0 0' } }, t('acct.payHint')))
+            : h(Fragment, null,
+              h('div', { className: 'om-field' },
+                h('label', { htmlFor: 'om-pay-amount' }, t('acct.amount')),
+                h('input', {
+                  id: 'om-pay-amount', className: 'om-input', autoFocus: true,
+                  type: 'number', min: 1, step: 1, value: amount,
+                  onChange: (e) => setAmount(e.target.value),
+                })),
+              h('div', { className: 'om-tail', style: { marginTop: '12px' } },
+                h('button', {
+                  className: 'om-btn primary', disabled: busy === 'acct',
+                  onClick: () => void startPayment(),
+                }, busy === 'acct' ? t('acct.waiting') : t('acct.createSession'))))) : null)
     }
     function advField(t, key, draft, setDraft, hint, type = 'text') {
       return h('div', { className: 'om-field' },

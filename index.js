@@ -71,6 +71,9 @@ export function apply(ctx, entry) {
     inflight: undefined,
     /** Pending OAuth attempt: verifier plus how it was started. */
     pending: undefined,
+    /** In-flight exchange, so the loopback callback and the panel's Finish button
+     * never burn the same single-use code twice. */
+    settling: undefined,
     /** Last /portal/usage request time, for the local 1 req/s limiter. */
     usageAt: 0,
     /** Last publish() outcome for /status. Diagnostic only; no key material. */
@@ -178,10 +181,21 @@ export function apply(ctx, entry) {
 
   // ── OAuth ───────────────────────────────────────────────────────────────────
 
-  const beginAuth = async () => {
+  const beginAuth = async (deps, returnTo) => {
     const current = settings()
     const pkce = createPkce()
-    const callback = await openCallback()
+    // The loopback listener hands the code straight back to us. Exchanging it
+    // here — the moment the browser lands — is what lets the panel sit still
+    // and simply observe: no "Finish" press, no copying a code across tabs.
+    const callback = await openCallback({
+      returnTo,
+      onCode: (found) => {
+        void (async () => {
+          const result = await finishAuth(deps, found, 0)
+          if (result.ok) await publish()
+        })().catch(() => {})
+      },
+    })
     state.pending = { pkce, callback }
     return {
       ok: true,
@@ -210,7 +224,13 @@ export function apply(ctx, entry) {
    * @param {number} [waitMs] - how long to wait for the redirect before giving up
    * @returns {Promise<object>}
    */
-  const finishAuth = async (deps, code, waitMs = 90_000) => {
+  const finishAuth = (deps, code, waitMs = 90_000) => {
+    if (state.settling) return state.settling
+    state.settling = settleAuth(deps, code, waitMs).finally(() => { state.settling = undefined })
+    return state.settling
+  }
+
+  const settleAuth = async (deps, code, waitMs = 90_000) => {
     const current = settings()
     const pending = state.pending
     if (pending === undefined) {
@@ -422,7 +442,8 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
           return
         }
         if (method === 'POST' && route === '/auth/start') {
-          send(await beginAuth())
+          const { returnTo } = await body()
+          send(await beginAuth({ credentialsService: ctx.get('credentials', false) }, returnTo))
           return
         }
         if (method === 'POST' && route === '/auth/finish') {
