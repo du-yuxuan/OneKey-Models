@@ -7,10 +7,10 @@ Topics: `dsh-plugin`, `deepseek-harness`, `tokendance`, `llm-provider`
 
 | # | Market | Method | Link | Status |
 |---|--------|--------|------|--------|
-| 1 | [0xsline/awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness) | PR — bilingual entry in **Models & Inference** | [PR #683](https://github.com/0xsline/awesome-deepseek-harness/pull/683) | Submitted 2026-10-04, awaiting review |
-| 2 | [2BingLing/dsh-market](https://github.com/2BingLing/dsh-market) | Issue (submission template) + `dsh-plugin` topic in the daily auto-scan pool | [Issue #201](https://github.com/2BingLing/dsh-market/issues/201) | Submitted 2026-10-04; picked up by the 06:00 pipeline |
-| 3 | [LivXue/dsh-plugin-shop](https://github.com/LivXue/dsh-plugin-shop) | Automatic discovery from the `dsh-plugin` GitHub topic — no application needed; `dsh.catalog` declared (category `provider`, bilingual summaries) | — | Auto-listed on the next daily build |
-| 4 | [awesome-dsh-plugin/awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) | PR — one file, `data/plugins/du-yuxuan__OneKey-Models.yml` | [PR #6564](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6564) | Submitted 2026-10-04; **blocked by the 1-day repo-age gate** (repo created same day). The checker states it re-runs itself and should clear in ~24h — no resubmission needed. |
+| 1 | [0xsline/awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness) | PR — bilingual entry in **Models & Inference** | [PR #683](https://github.com/0xsline/awesome-deepseek-harness/pull/683) | ✅ **MERGED 2026-10-10** — listed |
+| 2 | [2BingLing/dsh-market](https://github.com/2BingLing/dsh-market) | Issue (submission template) + `dsh-plugin` topic in the daily auto-scan pool | [Issue #201](https://github.com/2BingLing/dsh-market/issues/201) | ✅ **已收录 2026-10-05** (bot reply, issue closed) — searchable on dsh.market after the next 06:00 build; official badge added to both READMEs |
+| 3 | [LivXue/dsh-plugin-shop](https://github.com/LivXue/dsh-plugin-shop) | Automatic discovery from the `dsh-plugin` GitHub topic — no application needed; `dsh.catalog` declared (category `provider`, bilingual summaries) | — | Auto-listed on the next daily build (topics verified: `dsh-plugin`, `deepseek-harness`, `tokendance`, `llm-provider`) |
+| 4 | [awesome-dsh-plugin/awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) | PR — one file, `data/plugins/du-yuxuan__OneKey-Models.yml` | [PR #6564](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6564) | Submitted 2026-10-04; age gate cleared — **both checks SUCCESS 2026-10-06** (`check`, `Submission gate`), state MERGEABLE/CLEAN, awaiting maintainer merge. No resubmission needed. |
 
 ## What each market requires / 各市场要求
 

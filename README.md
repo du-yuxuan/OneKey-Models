@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://dsh.market/?q=du-yuxuan%2FOneKey-Models"><img src="https://raw.githubusercontent.com/2BingLing/dsh-market/master/assets/readme/badge-listed-zh.svg" alt="DSH Market 已收录" /></a>
+</p>
+
+<p align="center">
   English · <a href="README.zh.md">简体中文</a>
 </p>
 
