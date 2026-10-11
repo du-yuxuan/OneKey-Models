@@ -56,6 +56,7 @@ export const Config = Schema.object({
   /** Enumeration windows for the plugin's own tools. */
   toolTimeoutMs: Schema.natural().max(600_000).default(180_000),
   enableImageTool: Schema.boolean().default(true),
+  enableVideoTool: Schema.boolean().default(true),
   enableJevTool: Schema.boolean().default(true),
   enableCatalogTool: Schema.boolean().default(true),
 }).volatile()
@@ -85,7 +86,7 @@ export function plainConfig(value) {
  *   baseURL: string, appUrl: string, keyName: string, authOrigin: string,
  *   modelsDevUrl: string, autoConfigure: boolean, visibleModels: string[],
  *   imageInputModels: string[], toolTimeoutMs: number, enableImageTool: boolean,
- *   enableJevTool: boolean, enableCatalogTool: boolean}}
+ *   enableVideoTool: boolean, enableJevTool: boolean, enableCatalogTool: boolean}}
  */
 export function resolveSettings(entry) {
   const plain = plainConfig(entry ?? {})
@@ -106,6 +107,7 @@ export function resolveSettings(entry) {
     imageInputModels: strings(plain.imageInputModels),
     toolTimeoutMs: num(plain.toolTimeoutMs, 180_000),
     enableImageTool: plain.enableImageTool !== false,
+    enableVideoTool: plain.enableVideoTool !== false,
     enableJevTool: plain.enableJevTool !== false,
     enableCatalogTool: plain.enableCatalogTool !== false,
   }

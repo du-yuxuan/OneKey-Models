@@ -1,5 +1,5 @@
 /**
- * The four agent-facing tools.
+ * The five agent-facing tools.
  *
  * Built here rather than imported: `@deepseek-ai/dsh-tools` is not resolvable
  * from a plugin bundle (the published packages lag the running harness badly —
@@ -21,6 +21,7 @@
  */
 import { chatCompletion } from './http.js'
 import { generateImage } from './image.js'
+import { generateVideo } from './video.js'
 import { askTyped } from './jev.js'
 
 /** Every refusal uses one vocabulary, so the model learns it once. */
@@ -30,9 +31,9 @@ const PROBLEMS = {
   'no-key': 'no API key is stored yet',
   'bad-request': 'the arguments do not describe a callable request',
   'upstream': 'TokenDance rejected the request',
-  'network': 'the gateway could not be reached',
+  network: 'the gateway could not be reached',
+  pending: 'the upstream task is still generating — resume it with the same taskId',
 }
-
 export { PROBLEMS }
 
 /**
@@ -134,7 +135,7 @@ function refusal(problem, extra = {}) {
 }
 
 /**
- * Build all four definitions against one dependency bundle.
+ * Build all five definitions against one dependency bundle.
  *
  * `deps.resolveKey()` re-reads the credential store per call, so a key fixed in
  * another window takes effect immediately; `deps.settings()` returns the live
@@ -146,6 +147,7 @@ function refusal(problem, extra = {}) {
  * @param {() => object} deps.settings
  * @param {() => string} deps.appUrl
  * @param {(settings: object, signal?: AbortSignal) => Promise<{ok: boolean, models?: object[], error?: string}>} deps.fetchCatalog
+ * @param {(modelId: string, options?: {withImage?: boolean}) => string | undefined} deps.videoProtocolOf
  * @param {(modelId: string) => 'openai' | 'ark' | undefined} deps.imageProtocolOf
  * @param {(images: Array<{url?: string}>) => Promise<unknown[]>} deps.imageBlocks - image blocks for the conversation
  * @returns {object[]} definitions, in registration order
@@ -155,6 +157,7 @@ export function createTools(deps) {
     catalogTool(deps),
     chatTool(deps),
     imageTool(deps),
+    videoTool(deps),
     jevTool(deps),
   ]
 }
@@ -355,6 +358,104 @@ function imageTool(deps) {
         report: `Generated ${images.length} image(s) with ${args.model}: ${urls.join(', ')}`,
         images: urls,
         content: [...blocks, { type: 'text', text: urls.join('\n') }],
+      }
+    },
+  })
+}
+
+function videoTool(deps) {
+  return defineTool({
+    name: 'tokendance_video',
+    description:
+      'Generate a video with a TokenDance video model and return its URL into the conversation. Video '
+      + 'is asynchronous: this tool submits the task and polls it until it finishes; if the wait window '
+      + 'runs out it returns a taskId, and calling again with { model, taskId } resumes polling. Result '
+      + 'URLs expire 24 hours after generation — download or re-upload promptly. Pick the model with '
+      + 'tokendance_models capability "video"; for image-to-video pass the frame URL(s) in imageUrls.',
+    parameters: {
+      type: 'object',
+      properties: {
+        model: { type: 'string', description: 'Exact video model id from tokendance_models (capability "video").' },
+        prompt: { type: 'string', description: 'What the video should show. Required when submitting; ignored when resuming.' },
+        taskId: { type: 'string', description: 'Resume: poll this existing task instead of submitting a new one.' },
+        imageUrls: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional public image URLs: one for the first frame, two for first+last frame.',
+        },
+        duration: { type: 'number', description: 'Length in seconds (protocol-dependent, usually 4-15).' },
+        resolution: { type: 'string', description: 'Output resolution in the protocol vocabulary, e.g. 720p or 768P.' },
+        ratio: { type: 'string', description: 'Aspect ratio such as 16:9 or 9:16; text-to-video defaults to 16:9.' },
+      },
+      required: ['model'],
+      additionalProperties: false,
+    },
+    output: {
+      schema: {
+        type: 'object',
+        properties: {
+          ok: { type: 'boolean' },
+          report: { type: 'string' },
+        },
+        required: ['ok'],
+        additionalProperties: true,
+      },
+      render: (_args, value) => textOf(value),
+    },
+    timeoutMs: deps.settings().toolTimeoutMs,
+    async execute(args, exec) {
+      const settings = deps.settings()
+      if (settings.enableVideoTool === false) return refusal('disabled')
+      if (args.taskId === undefined && (args.prompt === undefined || args.prompt === '')) {
+        return refusal('bad-request', { message: 'prompt is required to submit a video task (or pass taskId to resume one)' })
+      }
+      const key = await deps.resolveKey()
+      if (key === undefined) return refusal('no-key')
+      const withImage = (args.imageUrls ?? []).length > 0
+      const protocol = deps.videoProtocolOf(args.model, { withImage })
+      if (protocol === undefined) {
+        return refusal('bad-request', {
+          message: `${args.model} exposes no video protocol this plugin can call — see https://tokendance.space/docs/multi-protocol.md`,
+        })
+      }
+      // Finish polling a little before the registry's own timeout so the
+      // pending report (with its taskId) lands instead of being cancelled.
+      const result = await generateVideo({
+        baseURL: settings.baseURL,
+        key,
+        model: args.model,
+        protocol,
+        appUrl: deps.appUrl(),
+        timeoutMs: Math.max(10_000, settings.toolTimeoutMs - 5_000),
+        signal: exec?.signal,
+        ...args.prompt === undefined ? {} : { prompt: args.prompt },
+        ...args.taskId === undefined ? {} : { taskId: args.taskId },
+        ...args.imageUrls === undefined ? {} : { imageUrls: args.imageUrls },
+        ...args.duration === undefined ? {} : { duration: args.duration },
+        ...args.resolution === undefined ? {} : { resolution: args.resolution },
+        ...args.ratio === undefined ? {} : { ratio: args.ratio },
+      })
+      if (!result.ok) {
+        if (result.pending === true) {
+          const message = String(result.error)
+          return {
+            ok: false,
+            problem: 'pending',
+            message,
+            taskId: result.taskId,
+            report: `${message}\nCall tokendance_video again with { model: "${args.model}", taskId: "${result.taskId}" } to keep polling.`,
+          }
+        }
+        if (result.status >= 400) return upstreamRefusal(result, args.model)
+        const message = result.error ?? 'video generation failed'
+        return { ok: false, problem: 'upstream', message, report: message }
+      }
+      const url = result.video.url
+      return {
+        ok: true,
+        report: `Video ready (${args.model}, task ${result.taskId}): ${url}\nThe URL expires 24 hours after generation — download or re-upload it before then.`,
+        video: url,
+        taskId: result.taskId,
       }
     },
   })

@@ -35,6 +35,7 @@ const FIELDS = {
   imageInputModels: { coerce: idList },
   toolTimeoutMs: { coerce: timeout },
   enableImageTool: { coerce: bool },
+  enableVideoTool: { coerce: bool },
   enableJevTool: { coerce: bool },
   enableCatalogTool: { coerce: bool },
 }

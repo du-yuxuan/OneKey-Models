@@ -112,6 +112,7 @@ window.__ModuleLoader__.load({
         'adv.autoConfigure': '授权后自动写入模型列表',
         'adv.enableCatalogTool': '启用模型目录工具',
         'adv.enableImageTool': '启用生图工具',
+        'adv.enableVideoTool': '启用生视频工具',
         'adv.enableJevTool': '启用 Jev 工具',
         'adv.save': '保存高级设置',
         'adv.saving': '保存中…',
@@ -223,6 +224,7 @@ window.__ModuleLoader__.load({
         'adv.autoConfigure': 'Auto-apply the model list after authorising',
         'adv.enableCatalogTool': 'Enable catalog tool',
         'adv.enableImageTool': 'Enable image tool',
+        'adv.enableVideoTool': 'Enable video tool',
         'adv.enableJevTool': 'Enable Jev tool',
         'adv.save': 'Save advanced settings',
         'adv.saving': 'Saving…',
@@ -398,7 +400,7 @@ window.__ModuleLoader__.load({
     const ADV_FIELDS = [
       'providerRoute', 'displayName', 'baseURL', 'keyName', 'authOrigin',
       'modelsDevUrl', 'toolTimeoutMs', 'autoConfigure', 'enableCatalogTool',
-      'enableImageTool', 'enableJevTool',
+      'enableImageTool', 'enableVideoTool', 'enableJevTool',
     ]
 
     // ── the page ───────────────────────────────────────────────────────────
@@ -821,6 +823,7 @@ window.__ModuleLoader__.load({
             advCheck(t, 'autoConfigure', draft, setDraft),
             advCheck(t, 'enableCatalogTool', draft, setDraft),
             advCheck(t, 'enableImageTool', draft, setDraft),
+            advCheck(t, 'enableVideoTool', draft, setDraft),
             advCheck(t, 'enableJevTool', draft, setDraft)),
           h('div', { className: 'om-tail' },
             h('span', null),

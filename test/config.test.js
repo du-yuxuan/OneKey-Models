@@ -21,6 +21,8 @@ test('defaults point at the TokenDance gateway', () => {
   assert.deepEqual(s.visibleModels, [])
   assert.deepEqual(s.imageInputModels, [])
   assert.equal(s.enableImageTool, true)
+  assert.equal(s.enableVideoTool, true)
+  assert.equal(resolveSettings({ enableVideoTool: false }).enableVideoTool, false)
   assert.equal(s.enableJevTool, true)
   assert.equal(s.enableCatalogTool, true)
 })

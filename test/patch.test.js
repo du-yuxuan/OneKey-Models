@@ -8,7 +8,7 @@ test('editableFields matches the Config schema', () => {
   assert.deepEqual([...editableFields()].sort(), [
     // appUrl is absent on purpose: attribution is fixed in code.
     'authOrigin', 'autoConfigure', 'baseURL', 'displayName', 'enableCatalogTool',
-    'enableImageTool', 'enableJevTool', 'imageInputModels', 'keyName', 'modelsDevUrl',
+    'enableImageTool', 'enableJevTool', 'enableVideoTool', 'imageInputModels', 'keyName', 'modelsDevUrl',
     'providerRoute', 'toolTimeoutMs', 'visibleModels',
   ])
   assert.ok(!editableFields().includes('appUrl'))

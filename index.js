@@ -27,6 +27,7 @@ import { clearApiKey, describeApiKey, resolveApiKey, storeApiKey } from './src/c
 import { buildEnrichment, mergeCatalog, toProviderProfile } from './src/catalog.js'
 import { exchangeCode, fetchModels } from './src/http.js'
 import { generateImage, imageModels, imageProtocolOf } from './src/image.js'
+import { videoProtocolOf } from './src/video.js'
 import { createPaymentSession, fetchBalance, fetchPaymentStatus, fetchUsage, paymentQrSvg, redeemCode } from './src/portal.js'
 import { jevModels } from './src/jev.js'
 import { authorizationUrl, createPkce, openCallback } from './src/oauth.js'
@@ -281,6 +282,7 @@ return { ok: true, keyName: current.keyName, keyRef: current.apiKeyEnv }
     resolveKey: async () => resolveApiKey(ctx.get('credentials', false), settings().apiKeyEnv),
     fetchCatalog: async (current, signal) => readCatalog(current, { force: true, signal }),
     imageProtocolOf: (modelId) => imageProtocolOf(state.catalog.find((model) => model.id === modelId)),
+    videoProtocolOf: (modelId, options) => videoProtocolOf(state.catalog.find((model) => model.id === modelId), options),
     /** Turn gateway images into attachment-backed blocks so they enter the chat. */
     imageBlocks: async (images) => {
       const attachments = ctx.get('attachments', false)
