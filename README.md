@@ -40,15 +40,16 @@ git clone https://github.com/du-yuxuan/OneKey-Models.git
 install_bundle target=/absolute/path/to/OneKey-Models
 ```
 
-**Or from the CLI** (creates/uses a profile):
+**Or with npm:**
 
 ```bash
-node <dsh>/lib/bin.js plugin --profile <profile-name> add /absolute/path/to/OneKey-Models
+npm install onekey-models
+node <dsh>/lib/bin.js plugin --profile <profile-name> add ./node_modules/onekey-models
 ```
 
 Restart DeepSeek Harness (or the profile session) after installing. The settings page appears under **Settings → Plugins → OneKey-Models**.
 
-> Requires Node.js ≥ 22.19.0. Distribution is via this GitHub repository + `install_bundle`; the package is not published to npm.
+> Requires Node.js ≥ 22.19.0. Distributed through the DSH plugin markets, `install_bundle`, npm (`onekey-models`) and this GitHub repository — the same bundle from every channel.
 
 ## Features
 
@@ -57,7 +58,7 @@ Restart DeepSeek Harness (or the profile session) after installing. The settings
 | 1 | **API key management** | OAuth (PKCE) sign-in opens the TokenDance authorization page; the returned key is stored locally in DSH's credentials store and **never appears in source code or logs**. |
 | 2 | **Model list configuration** | Fetches the live catalog from `https://tokendance.space/gateway/v1/models`, lets you select multiple models, and choose which ones show up in the model picker (empty selection = show everything). |
 | 3 | **Special model configuration** | Image-generation models are wired to their matching application (`openai:image-generations` / `ark:image-generations`); Jev judgment models are wired to the `typesafe:systemone` protocol — plus video, speech, audio, music, search, embedding and rerank models. |
-| 4 | **Core capabilities** | Chat, image generation and multimodal (text + image) input all work out of the box, exposed both to the model picker and as four built-in tools (`tokendance_models`, `tokendance_chat`, `tokendance_image`, `tokendance_jev`). |
+| 4 | **Core capabilities** | Chat, image generation, video generation and multimodal (text + image) input work out of the box, exposed both to the model picker and as five agent tools (`tokendance_models`, `tokendance_chat`, `tokendance_image`, `tokendance_video`, `tokendance_jev`). |
 
 Enrichment data (logos, pricing, context windows, release dates, modalities) is synced automatically from [models.dev](https://models.dev).
 
@@ -104,28 +105,42 @@ This plugin does the wiring for you: **install → sign in once → pick your mo
 
 1. **Sign in** — the plugin opens the TokenDance authorization URL, receives a one-time code on a loopback callback, exchanges it for an API key, and stores it via DSH's credentials service (`~/.dsh/.credentials.yaml`, mode `600`).
 2. **Pick models** — the live catalog is fetched, enriched with models.dev metadata, and written into the `llm-pi-ai` settings namespace as a provider block.
-3. **Use them** — selected models show up in the model picker; image and Jev models additionally get dedicated tools.
+3. **Use them** — selected models show up in the model picker; image and Jev models additionally get dedicated tools, and any picture or video can be requested from a chat prompt.
 
 All local HTTP endpoints are guarded by a loopback + `sec-fetch-site` trust fence (inbound requests must come from the local origin, never a cross-site page).
 
 ## Testing
 
 ```bash
-npm test              # 57 unit tests (node:test)
+npm test              # 71 unit tests (node:test)
 npm run check:catalog # live catalog acceptance (108 models, 71 routable)
 ```
-
-The unit suite covers config normalization, catalog mapping, the settings patch whitelist, Jev question validation, PKCE/OAuth URL construction, the trust fence, credential helpers, and the HTTP layer (exercised against a local stub gateway — no real key required).
+The unit suite covers config normalization, catalog mapping, the settings patch whitelist, Jev question validation, the five video protocols' submit-and-poll shapes, PKCE/OAuth URL construction, the trust fence, credential helpers, and the HTTP layer (exercised against a local stub gateway — no real key required).
 
 ## Video
 
 <p align="center"><img src="out/intro-poster.png" alt="Intro video poster" width="640" /></p>
 
-75-second intro (1920×1080, 30 fps): [`out/intro.mp4`](out/intro.mp4) — built with [Remotion](https://www.remotion.dev/); sources in [`video/`](video/).
+
+90-second intro (1920×1080, 30 fps) in nine scenes: the pain of a dozen keys, the gateway, the reveal, the three steps, the agent tools (image + video), Jev decisions, the install command, and the TokenDance credit. Rebuild it with <code>npm run render</code> inside <a href="video/"><code>video/</code></a>.
 
 ## Plugin page
 
-The settings page shows the **“API support provided by TokenDance”** credit, the TokenDance brand mark, and a plain-language introduction of what TokenDance is.
+The settings page shows the **“API support provided by TokenDance”** credit, the TokenDance brand mark, and a plain-language introduction of what TokenDance is. Sign-in, the balance card, redeem/top-up (as centered dialogs) and the model list all live on that one page.
+
+## Agent tools
+
+Five tools are registered into the DSH agent registry, so a chat prompt such as *“generate a video of a whale swimming”* becomes a real call:
+
+| Tool | What it does |
+|---|---|
+| `tokendance_models` | Lists the live catalog, optionally filtered by capability (`image`, `video`, `chat`…) |
+| `tokendance_chat` | One message to one model, with optional images attached |
+| `tokendance_image` | Generates an image and returns it straight into the conversation |
+| `tokendance_video` | Submits a video task and polls it; resumable by `taskId` |
+| `tokendance_jev` | Asks a Jev model for typed decisions (yes/no + probability, choice, score) |
+
+A companion skill, **`tokendance-media`** (installed to `~/.agents/skills/`), teaches the agent which tool to reach for and how to read the `pending` / `taskId` outcomes. Each tool has its own on/off switch in the plugin's advanced settings.
 
 ## Repository layout
 
@@ -133,7 +148,8 @@ The settings page shows the **“API support provided by TokenDance”** credit,
 index.js            Host half: settings, OAuth, catalog, HTTP routes, tools
 client.js           Client half: settings page (slot + locale registration)
 src/                config, catalog, credentials, http, image, jev, oauth,
-                    patch, pi-ai, tools, trust
+                    patch, pi-ai, tools, trust, video (submit-and-poll for
+                    seedance / kling / minimax / wan3 / happyhorse)
 locale/             zh + en metadata
 test/               node:test suites
 scripts/            check-catalog.mjs, oauth-once.mjs

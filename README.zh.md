@@ -40,21 +40,22 @@ git clone https://github.com/du-yuxuan/OneKey-Models.git
 install_bundle target=/absolute/path/to/OneKey-Models
 ```
 
-**或用 CLI**（会创建/使用一个 profile）：
+**或用 npm**：
 
 ```bash
-node <dsh>/lib/bin.js plugin --profile <profile-name> add /absolute/path/to/OneKey-Models
+npm install onekey-models
+node <dsh>/lib/bin.js plugin --profile <profile-name> add ./node_modules/onekey-models
 ```
 
 安装后重启 DeepSeek Harness（或对应 profile 会话）。设置页出现在 **Settings → Plugins → OneKey-Models**。
 
-> 需要 Node.js ≥ 22.19.0。分发走本 GitHub 仓库 + `install_bundle`，未发布到 npm。
+> 需要 Node.js ≥ 22.19.0。分发渠道：DSH 插件市场、`install_bundle`、npm（`onekey-models`）和本 GitHub 仓库——同一份 bundle。
 
 ## 功能
 
 | | 功能 | 说明 |
 |---|---|---|
-| 1 | **API Key 管理** | OAuth（PKCE）登录打开 TokenDance 授权页，换回的 Key 本地保存进 DSH 凭据库，**绝不出现在源码或日志里**。 |
+| 4 | **基础能力** | 对话、生图、**生视频**、多模态（文本 + 图片）输入开箱即用，既出现在模型选择器，也暴露为 5 个 agent 工具（`tokendance_models`、`tokendance_chat`、`tokendance_image`、`tokendance_video`、`tokendance_jev`）。|
 | 2 | **模型列表配置** | 从 `https://tokendance.space/gateway/v1/models` 实时拉取模型目录，可多选、可决定哪些模型显示在模型选择器里（空选 = 全部显示）。 |
 | 3 | **特殊模型配置** | 生图模型接到对应应用（`openai:image-generations` / `ark:image-generations`）；Jev 判断模型接到 `typesafe:systemone` 协议；另有视频、语音、音频、音乐、搜索、embedding、rerank 模型。 |
 | 4 | **基础能力** | 对话、生图、多模态（文本 + 图片）输入开箱即用，既出现在模型选择器，也暴露为 4 个内置工具（`tokendance_models`、`tokendance_chat`、`tokendance_image`、`tokendance_jev`）。 |
@@ -104,24 +105,26 @@ catalog: 108 models from https://tokendance.space/gateway/v1/models
 
 1. **登录**——插件打开 TokenDance 授权 URL，在回环回调上收到一次性授权码，换成 API Key 后经 DSH 凭据服务保存（`~/.dsh/.credentials.yaml`，权限 `600`）。
 2. **选模型**——拉取实时目录、用 models.dev 富化，写进 `llm-pi-ai` 设置命名空间的 provider 块。
-3. **用起来**——选中的模型出现在模型选择器；生图和 Jev 模型另有专属工具。
+3. **用起来**——选中的模型出现在模型选择器；生图、生视频和 Jev 模型另有专属工具，对话里说「画一只鲸鱼」「生成一段鲸鱼游泳的视频」就能直接调用。
+
+5 个工具注册进 DSH agent 注册表：`tokendance_models`（按能力列模型）、`tokendance_chat`（单条消息）、`tokendance_image`（生图，直接回到对话）、`tokendance_video`（生视频，提交 + 轮询，可用 taskId 续跑）、`tokendance_jev`（判 Yes/No、选项、打分）。配套 skill **`tokendance-media`**（装在 `~/.agents/skills/`）教 agent 选哪个工具、怎么读 pending/taskId。每个工具在高级设置里都有独立开关。
 
 所有本地 HTTP 端点都套着回环 + `sec-fetch-site` 信任栅栏（入站请求必须来自本地上游，绝不接受跨站页面）。
 
 ## 测试
 
 ```bash
-npm test              # 57 个单元测试（node:test）
+npm test              # 71 个单元测试（node:test）
 npm run check:catalog # 实时目录验收（108 模型，71 可路由）
 ```
 
-单元测试覆盖配置归一化、目录映射、设置 patch 白名单、Jev 问题校验、PKCE/OAuth URL 构造、信任栅栏、凭据辅助函数，以及 HTTP 层（对着本地替身网关跑，**不需要真实 Key**）。
+单元测试覆盖配置归一化、目录映射、设置 patch 白名单、Jev 问题校验、5 个视频协议族的提交与轮询形状、PKCE/OAuth URL 构造、信任栅栏、凭据辅助函数，以及 HTTP 层（对着本地替身网关跑，**不需要真实 Key**）。
 
 ## 介绍视频
 
 <p align="center"><img src="out/intro-poster.png" alt="介绍视频封面" width="640" /></p>
 
-75 秒介绍视频（1920×1080，30 fps）：[`out/intro.mp4`](out/intro.mp4) —— 用 [Remotion](https://www.remotion.dev/) 制作，源码在 [`video/`](video/)。
+90 秒介绍视频（1920×1080，30 fps）共 9 个场景：一把 Key 的痛、网关、进场、三步、agent 工具（生图 + 生视频）、Jev 决策、安装命令、TokenDance 署名。重跑方式：在 [`video/`](video/) 里 `npm run render`。
 
 ## 插件页面
 
@@ -133,7 +136,8 @@ npm run check:catalog # 实时目录验收（108 模型，71 可路由）
 index.js            Host 侧：设置、OAuth、目录、HTTP 路由、工具
 client.js           Client 侧：设置页（slot + locale 注册）
 src/                config、catalog、credentials、http、image、jev、
-                    oauth、patch、pi-ai、tools、trust
+                    oauth、patch、pi-ai、tools、trust、video（5 个
+                    视频协议族的提交 + 轮询）
 locale/             中英双语元数据
 test/               node:test 测试集
 scripts/            check-catalog.mjs、oauth-once.mjs

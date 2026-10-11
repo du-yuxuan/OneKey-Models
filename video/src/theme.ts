@@ -47,7 +47,7 @@ export const ACCENTS = [
 ] as const;
 
 export const SCENE_COUNT = 8;
-export const TOTAL_FRAMES = 2250;
+export const TOTAL_FRAMES = 2610;
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;

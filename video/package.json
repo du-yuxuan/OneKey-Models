@@ -27,6 +27,8 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src && tsc",
+    "render": "remotion render OneKeyIntro ../out/intro.mp4",
+    "still": "remotion still OneKeyIntro"
   }
 }
